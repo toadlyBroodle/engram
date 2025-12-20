@@ -19,7 +19,6 @@ from datetime import datetime
 from persistent_memory import VectorMemory
 from memory_context import MemoryContextIntegrator, create_memory_context_integrator
 from context_window_manager import ContextWindowManager, create_default_context_manager
-from bootstrap_memory import MemoryBootstrap
 
 
 class MemoryIntegration:
@@ -53,11 +52,17 @@ class MemoryIntegration:
         self.conversation_history = []
 
         # Initialize automatic memory capture
+        # Import here to avoid circular dependency
+        from bootstrap_memory import MemoryBootstrap
         self.bootstrap_handler = MemoryBootstrap(memory_path, self)
         self.auto_capture_enabled = True
 
         print("🧠 Memory Integration System initialized")
         print("🔄 Automatic memory capture enabled")
+
+        # Set the integration reference in bootstrap handler
+        if hasattr(self.bootstrap_handler, 'set_integration_reference'):
+            self.bootstrap_handler.set_integration_reference(self)
 
     def update_conversation(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
         """

@@ -20,6 +20,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
+from memory_integration import MemoryIntegration
+
 
 class MemoryBootstrap:
     """
@@ -33,6 +35,11 @@ class MemoryBootstrap:
         self.memory_path = memory_path
         self.bootstrap_memories_file = Path(__file__).parent / "bootstrap_memories.json"
         self.memory_system = memory_system
+        self.integration = None  # Will be set after MemoryIntegration is fully initialized
+
+    def set_integration_reference(self, integration):
+        """Set the integration reference after MemoryIntegration is fully initialized"""
+        self.integration = integration
 
         # Automatic memory capture settings
         self.auto_capture_enabled = True
@@ -138,11 +145,10 @@ class MemoryBootstrap:
         # Add each bootstrap memory to the system
         for i, memory_data in enumerate(bootstrap_memories, 1):
             try:
-                memory_id = self.memory_system.add_memory(
+                memory_id = self.integration.memory_system.store_memory(
                     content=memory_data["content"],
                     importance=memory_data["importance"],
-                    tags=memory_data["tags"],
-                    context=memory_data["context"]
+                    tags=memory_data["tags"]
                 )
                 print(f"  ✓ Bootstrap memory {i}: {memory_data['content'][:60]}... (ID: {memory_id[:8]})")
 
@@ -286,7 +292,7 @@ python quick_memory.py stats
         Returns:
             True if insight was captured and stored
         """
-        if not self.auto_capture_enabled or not self.memory_system:
+        if not self.auto_capture_enabled or not self.integration:
             return False
 
         # Analyze text for importance
@@ -304,16 +310,10 @@ python quick_memory.py stats
 
         # Store the memory
         try:
-            memory_id = self.memory_system.add_memory(
+            memory_id = self.integration.memory_system.store_memory(
                 content=text,
                 importance=importance,
-                tags=tags,
-                context={
-                    "type": "auto_captured",
-                    "source": context,
-                    "analysis": analysis,
-                    "timestamp": datetime.now().isoformat()
-                }
+                tags=tags
             )
 
             # Track captured insights
