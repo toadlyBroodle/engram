@@ -64,6 +64,9 @@ class MemoryIntegration:
         if hasattr(self.bootstrap_handler, 'set_integration_reference'):
             self.bootstrap_handler.set_integration_reference(self)
 
+            # Check for autonomous milestone after initialization
+            self._check_autonomous_milestone("system_initialization")
+
     def update_conversation(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
         """
         Update the conversation context with new message
@@ -240,6 +243,11 @@ class MemoryIntegration:
             self.conversation_history = self.conversation_history[-50:]
 
         print("⚡ System optimized for performance")
+
+    def _check_autonomous_milestone(self, context: str = "operation_complete"):
+        """Check if current state warrants an autonomous milestone commit"""
+        if hasattr(self.bootstrap_handler, 'check_and_commit_milestone'):
+            self.bootstrap_handler.check_and_commit_milestone(context)
 
     def _check_and_capture_insight(self, content: str, speaker: str):
         """Check if content contains important insights worth remembering"""

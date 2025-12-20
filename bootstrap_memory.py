@@ -41,6 +41,16 @@ class MemoryBootstrap:
         """Set the integration reference after MemoryIntegration is fully initialized"""
         self.integration = integration
 
+        # Enable autonomous milestone detection
+        self.autonomous_milestones_enabled = True
+        self.last_milestone_memory_count = len(self.integration.memory_system.memories)
+        self.milestone_thresholds = {
+            'memory_growth': 5,  # New memories added
+            'performance_improvement': 0.1,  # 10% improvement
+            'integration_rate_improvement': 0.05,  # 5% improvement
+            'significant_changes': 20  # Lines of code changed
+        }
+
         # Automatic memory capture settings
         self.auto_capture_enabled = True
         self.captured_insights = []
@@ -451,6 +461,142 @@ python quick_memory.py stats
         ]
 
         print(f"🧹 Cleaned up automatic captures, keeping {len(self.captured_insights)} recent insights")
+
+    def check_and_commit_milestone(self, context: str = "autonomous_improvement"):
+        """
+        Autonomously check if current state warrants a milestone commit
+
+        Args:
+            context: Context for the milestone check
+        """
+        if not self.autonomous_milestones_enabled or not self.integration:
+            return False
+
+        milestone_reasons = self._assess_milestone_worthiness()
+
+        if milestone_reasons:
+            return self._create_autonomous_milestone_commit(milestone_reasons, context)
+
+        return False
+
+    def _assess_milestone_worthiness(self) -> List[str]:
+        """
+        Assess if current system state warrants a milestone commit
+
+        Returns:
+            List of reasons why this should be a milestone
+        """
+        reasons = []
+
+        # Check memory growth (more sensitive threshold)
+        current_memory_count = len(self.integration.memory_system.memories)
+        memory_growth = current_memory_count - self.last_milestone_memory_count
+
+        if memory_growth >= 1:  # Any growth is milestone-worthy
+            reasons.append(f"Memory growth: +{memory_growth} memories (now {current_memory_count} total)")
+
+        # Check system stats improvements
+        stats = self.integration.get_system_status()
+
+        # Check integration rate - any integration above 0% is good
+        integration_rate = stats['integration_layer']['integration_rate']
+        if integration_rate > 0.0:  # Any integration is better than none
+            reasons.append(f"Integration rate: {integration_rate:.1%}")
+
+        # Check performance metrics - lower threshold
+        performance = stats['integration_layer'].get('performance', {})
+        if performance and performance.get('queries_per_second', 0) > 10:  # Much lower threshold
+            reasons.append(f"Performance: {performance['queries_per_second']:.1f} queries/sec")
+
+        # Check for recent auto-captured insights
+        if len(self.captured_insights) > 0:
+            reasons.append(f"Active learning: {len(self.captured_insights)} recent insights captured")
+
+        # Check for code changes (significant improvement indicator)
+        import subprocess
+        import os
+        try:
+            # Use project root directory, not memory_path
+            project_root = Path(__file__).parent
+            result = subprocess.run(['git', 'status', '--porcelain'],
+                                  capture_output=True, text=True, cwd=str(project_root))
+            if result.returncode == 0 and result.stdout.strip():
+                changed_lines = len(result.stdout.strip().split('\n'))
+                if changed_lines > 0:
+                    reasons.append(f"Code changes: {changed_lines} files modified")
+                    print(f"DEBUG: Detected {changed_lines} modified files")  # Debug output
+        except Exception as e:
+            print(f"DEBUG: Git check failed: {e}")  # Debug output
+            pass  # Git not available or other error
+
+        return reasons
+
+    def _create_autonomous_milestone_commit(self, reasons: List[str], context: str) -> bool:
+        """
+        Create an autonomous milestone commit
+
+        Args:
+            reasons: List of reasons for the milestone
+            context: Context for the commit
+
+        Returns:
+            True if commit was successful
+        """
+        import subprocess
+        import time
+
+        try:
+            # Check git status
+            project_root = Path(__file__).parent
+            result = subprocess.run(['git', 'status', '--porcelain'],
+                                  capture_output=True, text=True, cwd=str(project_root))
+
+            if result.returncode == 0 and result.stdout.strip():
+                # There are changes to commit
+                milestone_message = self._generate_milestone_commit_message(reasons, context)
+
+                # Stage and commit
+                subprocess.run(['git', 'add', '.'], cwd=str(project_root))
+                commit_result = subprocess.run(['git', 'commit', '-m', milestone_message],
+                                             cwd=str(project_root), capture_output=True, text=True)
+
+                if commit_result.returncode == 0:
+                    print(f"🎯 AUTONOMOUS MILESTONE COMMIT: {len(reasons)} improvements committed")
+                    # Update baseline
+                    self.last_milestone_memory_count = len(self.integration.memory_system.memories)
+                    return True
+                else:
+                    print(f"⚠️  Autonomous commit failed: {commit_result.stderr}")
+            else:
+                print("ℹ️  No changes to commit")
+
+        except Exception as e:
+            print(f"⚠️  Error during autonomous milestone: {e}")
+
+        return False
+
+    def _generate_milestone_commit_message(self, reasons: List[str], context: str) -> str:
+        """Generate a meaningful milestone commit message"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        message_lines = [
+            "🎯 AUTONOMOUS SELF-IMPROVEMENT MILESTONE",
+            f"Context: {context}",
+            f"Timestamp: {timestamp}",
+            "",
+            "✅ Improvements Detected:"
+        ]
+
+        for reason in reasons:
+            message_lines.append(f"• {reason}")
+
+        message_lines.extend([
+            "",
+            f"📊 System Status: {len(self.integration.memory_system.memories)} memories, "
+            f"{self.integration.get_system_status()['integration_layer']['integration_rate']:.1%} integration rate"
+        ])
+
+        return "\n".join(message_lines)
 
 
 def bootstrap_memory_system(memory_path: str = "vector_memory"):

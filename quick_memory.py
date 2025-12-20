@@ -77,12 +77,32 @@ def show_memory_stats():
         return f"❌ Error getting stats: {e}"
 
 
+def check_autonomous_milestone(context: str = "manual_check") -> str:
+    """Check if current system state warrants an autonomous milestone commit"""
+    try:
+        integration = MemoryIntegration()
+
+        if hasattr(integration.bootstrap_handler, 'check_and_commit_milestone'):
+            success = integration.bootstrap_handler.check_and_commit_milestone(context)
+
+            if success:
+                return "🎯 AUTONOMOUS MILESTONE: Significant improvements detected and committed!"
+            else:
+                return "ℹ️  No milestone-worthy improvements detected at this time."
+        else:
+            return "❌ Autonomous milestone system not available"
+
+    except Exception as e:
+        return f"❌ Error checking milestone: {e}"
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
         print("  python quick_memory.py query \"your question here\"")
         print("  python quick_memory.py add \"memory content\" \"tag1,tag2\" 0.8")
         print("  python quick_memory.py stats")
+        print("  python quick_memory.py milestone [context]")
         sys.exit(1)
 
     command = sys.argv[1].lower()
@@ -103,5 +123,10 @@ if __name__ == "__main__":
         result = show_memory_stats()
         print(result)
 
+    elif command == "milestone":
+        context = sys.argv[2] if len(sys.argv) > 2 else "manual_check"
+        result = check_autonomous_milestone(context)
+        print(result)
+
     else:
-        print("❌ Invalid command. Use 'query', 'add', or 'stats'")
+        print("❌ Invalid command. Use 'query', 'add', 'stats', or 'milestone'")
