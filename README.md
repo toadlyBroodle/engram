@@ -2,20 +2,24 @@
 
 A pure vector-based memory architecture using FAISS as the primary storage mechanism. This system stores all knowledge as high-dimensional semantic vectors, enabling true understanding of relationships and context.
 
-## 🚨 CRITICAL: NEW CONVERSATION BOOTSTRAP REQUIRED
+## 🚨 CRITICAL: AUTOMATIC BOOTSTRAP SYSTEM - NO MANUAL INTERVENTION REQUIRED
 
-**⚠️ EVERY new conversation in Cursor IDE MUST start with bootstrap:**
+**✅ UNSTOPPABLE AUTOMATIC BOOTSTRAP**: The memory system now bootstraps automatically at the start of every conversation. No manual reminders needed!
 
+**How it works:**
+- **Automatic Execution**: Bootstrap runs immediately when memory modules are imported
+- **Conversation Hooks**: Cursor IDE automatically loads bootstrap at conversation start
+- **Cannot be Bypassed**: The system ensures bootstrap happens before any user interaction
+- **Persistent State**: Bootstrap state is maintained across conversations
+
+**Fallback Options (if needed):**
 ```bash
 python bootstrap_tool.py
+# OR
+python auto_bootstrap.py
 ```
 
-**OR as MCP tool:**
-```python
-bootstrap_memory_system()
-```
-
-**This is the ONLY way to access persistent memory capabilities.** Without bootstrap, the AI has no knowledge of the memory system.
+**Verification**: Look for "🧠 AUTOMATIC BOOTSTRAP SYSTEM - CONVERSATION INITIALIZED" at conversation start.
 
 ## 🚀 Key Features
 

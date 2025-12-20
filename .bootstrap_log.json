@@ -1,0 +1,20 @@
+[
+  {
+    "timestamp": "2025-12-20T22:34:23.838373",
+    "type": "automatic_bootstrap",
+    "status": "successful",
+    "conversation_start": true
+  },
+  {
+    "timestamp": "2025-12-20T22:34:30.123522",
+    "type": "automatic_bootstrap",
+    "status": "successful",
+    "conversation_start": true
+  },
+  {
+    "timestamp": "2025-12-20T22:40:25.997062",
+    "type": "automatic_bootstrap",
+    "status": "successful",
+    "conversation_start": true
+  }
+]

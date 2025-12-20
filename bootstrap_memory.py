@@ -20,7 +20,9 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
-from memory_integration import MemoryIntegration
+# Placeholder for automatic bootstrap execution
+# This will be called after MemoryBootstrap class is defined
+_AUTO_BOOTSTRAP_EXECUTED = False
 
 
 class MemoryBootstrap:
@@ -44,6 +46,7 @@ class MemoryBootstrap:
 
         # Enable autonomous milestone detection
         self.autonomous_milestones_enabled = True
+        self.auto_capture_enabled = True
         self.last_milestone_memory_count = len(self.integration.memory_system.memories)
         self.milestone_thresholds = {
             'memory_growth': 5,  # New memories added
@@ -366,92 +369,336 @@ python quick_memory.py stats
 
     def _analyze_text_importance(self, text: str) -> Dict[str, Any]:
         """
-        Analyze text to determine if it's important enough to remember
+        Enhanced text analysis for determining importance with multi-factor scoring
 
         Returns:
-            Dict with importance analysis
+            Dict with comprehensive importance analysis
         """
         text_lower = text.lower()
         words = set(text_lower.split())
+        word_list = text_lower.split()
 
-        # Count important keywords
-        important_count = len(self.important_keywords & words)
-        technical_count = len(self.technical_terms & words)
+        # Enhanced keyword detection with stemming and partial matches
+        important_matches = self._find_keyword_matches(text_lower, self.important_keywords)
+        technical_matches = self._find_keyword_matches(text_lower, self.technical_terms)
 
-        # Length and structure analysis
+        # Structural analysis
         word_count = len(words)
+        char_count = len(text)
         has_sentences = len(re.findall(r'[.!?]', text)) > 0
-        has_code = bool(re.search(r'```|`|\.py|\.sh|python|bash', text))
+        has_code = self._detect_code_patterns(text)
+        has_lists = bool(re.search(r'^\s*[-*•]\s+', text, re.MULTILINE))
+        has_numbers = bool(re.search(r'\d+', text))
 
-        # Calculate importance score with improved sensitivity
-        base_score = 0.2  # Lower minimum threshold for better capture
+        # Semantic pattern analysis
+        semantic_patterns = self._analyze_semantic_patterns(text_lower, word_list)
 
-        # Keyword bonuses (increased sensitivity)
-        base_score += min(0.4, important_count * 0.15)  # Max 0.4 for important keywords
-        base_score += min(0.3, technical_count * 0.08)  # Max 0.3 for technical terms
+        # Calculate enhanced importance score
+        base_score = 0.15  # Lower base for better sensitivity
 
-        # Structure bonuses
-        if has_sentences and word_count > 8:  # Lower threshold
-            base_score += 0.25  # Well-formed content
-        if has_code:
-            base_score += 0.3  # Contains code/implementation
-        if word_count > 30:  # Substantial content threshold
-            base_score += 0.15
+        # Keyword importance (enhanced weighting)
+        keyword_score = self._calculate_keyword_importance(important_matches, technical_matches)
+        base_score += keyword_score
 
-        # Context bonuses (expanded)
-        achievement_terms = ['solution', 'breakthrough', 'completed', 'accomplished', 'discovered',
-                           'implemented', 'created', 'developed', 'optimized', 'improved',
-                           'solved', 'fixed', 'resolved', 'achieved', 'critical', 'bug']
-        if any(term in text_lower for term in achievement_terms):
-            base_score += 0.25  # Achievement indicators
+        # Structural quality bonuses
+        structural_score = self._calculate_structural_importance(
+            word_count, char_count, has_sentences, has_code, has_lists, has_numbers
+        )
+        base_score += structural_score
 
-        # Technical depth bonus
-        technical_depth = len(set(text_lower.split()) & (self.important_keywords | self.technical_terms))
-        if technical_depth >= 3:
-            base_score += 0.2  # High technical content
+        # Semantic pattern bonuses
+        semantic_score = semantic_patterns['pattern_importance']
+        base_score += semantic_score
+
+        # Context and conversation flow analysis
+        context_score = self._analyze_conversation_context(text)
+        base_score += context_score
+
+        # Quality indicators
+        quality_indicators = self._assess_content_quality(text, word_list, semantic_patterns)
+        base_score += quality_indicators['quality_bonus']
+
+        # Final importance calculation with diminishing returns
+        final_importance = min(1.0, base_score)
 
         return {
-            'is_important': base_score >= 0.4,  # Even lower threshold for comprehensive capture
-            'calculated_importance': min(1.0, base_score),
-            'important_keywords_found': important_count,
-            'technical_terms_found': technical_count,
+            'is_important': final_importance >= 0.35,  # Optimized threshold
+            'calculated_importance': final_importance,
+            'important_keywords_found': len(important_matches),
+            'technical_terms_found': len(technical_matches),
             'word_count': word_count,
+            'char_count': char_count,
             'has_sentences': has_sentences,
             'has_code': has_code,
-            'technical_depth': technical_depth
+            'has_lists': has_lists,
+            'has_numbers': has_numbers,
+            'semantic_patterns': semantic_patterns,
+            'quality_indicators': quality_indicators,
+            'detailed_scores': {
+                'keyword_score': keyword_score,
+                'structural_score': structural_score,
+                'semantic_score': semantic_score,
+                'context_score': context_score,
+                'quality_bonus': quality_indicators['quality_bonus']
+            }
+        }
+
+    def _find_keyword_matches(self, text: str, keyword_set: set) -> List[str]:
+        """Find keyword matches with partial matching and stemming"""
+        matches = []
+        for keyword in keyword_set:
+            # Exact match
+            if keyword in text:
+                matches.append(keyword)
+                continue
+
+            # Partial matches for longer keywords
+            if len(keyword) > 4:
+                # Check for keyword as substring in words
+                for word in text.split():
+                    if keyword in word or word in keyword:
+                        matches.append(keyword)
+                        break
+
+        return list(set(matches))  # Remove duplicates
+
+    def _detect_code_patterns(self, text: str) -> bool:
+        """Enhanced code pattern detection"""
+        code_indicators = [
+            r'```', r'`[^`]*`',  # Code blocks and inline code
+            r'\.py\b|\.sh\b|\.js\b|\.java\b|\.cpp\b|\.c\b',  # File extensions
+            r'\bpython\b|\bbash\b|\bimport\b|\bdef\b|\bclass\b|\bfunction\b',  # Language keywords
+            r'\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b',  # SQL keywords
+            r'\$\{[^}]+\}|\$\([^)]+\)',  # Shell variables
+            r'--[a-zA-Z]|#[a-zA-Z]',  # Comments
+            r'[a-zA-Z_][a-zA-Z0-9_]*\([^)]*\)',  # Function calls
+        ]
+
+        return any(re.search(pattern, text, re.IGNORECASE) for pattern in code_indicators)
+
+    def _analyze_semantic_patterns(self, text: str, word_list: List[str]) -> Dict[str, Any]:
+        """Analyze semantic patterns for importance assessment"""
+        patterns = {
+            'action_verbs': ['create', 'build', 'implement', 'solve', 'fix', 'optimize', 'improve', 'develop', 'design'],
+            'achievement_indicators': ['success', 'completed', 'accomplished', 'breakthrough', 'solution', 'resolved', 'achieved'],
+            'technical_concepts': ['algorithm', 'architecture', 'framework', 'system', 'database', 'network', 'api', 'interface'],
+            'learning_indicators': ['learned', 'discovered', 'realized', 'understood', 'mastered', 'gained'],
+            'problem_solution': ['problem', 'issue', 'challenge', 'difficulty', 'solution', 'approach', 'method']
+        }
+
+        pattern_scores = {}
+        total_pattern_importance = 0
+
+        for category, terms in patterns.items():
+            matches = sum(1 for term in terms if term in text)
+            pattern_scores[category] = matches
+            if matches > 0:
+                # Exponential bonus for multiple terms in same category
+                total_pattern_importance += min(0.15, matches * 0.05 + (matches ** 0.5) * 0.02)
+
+        return {
+            'pattern_scores': pattern_scores,
+            'pattern_importance': min(0.3, total_pattern_importance),
+            'dominant_patterns': [cat for cat, score in pattern_scores.items() if score > 0]
+        }
+
+    def _calculate_keyword_importance(self, important_matches: List[str], technical_matches: List[str]) -> float:
+        """Calculate importance based on keyword matches with enhanced weighting"""
+        score = 0.0
+
+        # Important keywords (higher weight)
+        if important_matches:
+            unique_important = len(set(important_matches))
+            score += min(0.35, unique_important * 0.12 + (unique_important ** 0.7) * 0.05)
+
+        # Technical terms (moderate weight)
+        if technical_matches:
+            unique_technical = len(set(technical_matches))
+            score += min(0.25, unique_technical * 0.08 + (unique_technical ** 0.6) * 0.03)
+
+        # Bonus for combination of both
+        if important_matches and technical_matches:
+            score += 0.08
+
+        return min(0.5, score)
+
+    def _calculate_structural_importance(self, word_count: int, char_count: int, has_sentences: bool,
+                                       has_code: bool, has_lists: bool, has_numbers: bool) -> float:
+        """Calculate importance based on text structure and formatting"""
+        score = 0.0
+
+        # Length-based scoring with diminishing returns
+        if word_count >= 5:
+            score += min(0.15, (word_count ** 0.6) * 0.02)
+        if char_count >= 50:
+            score += min(0.1, (char_count ** 0.5) * 0.001)
+
+        # Structure bonuses
+        if has_sentences:
+            score += 0.08  # Well-formed sentences
+        if has_code:
+            score += 0.25  # Contains code (high value)
+        if has_lists:
+            score += 0.06  # Structured information
+        if has_numbers:
+            score += 0.04  # Quantitative information
+
+        # Completeness bonus for substantial content
+        if word_count >= 20 and has_sentences:
+            score += 0.08
+
+        return min(0.4, score)
+
+    def _analyze_conversation_context(self, text: str) -> float:
+        """Analyze conversation context for importance assessment"""
+        # This would integrate with conversation history if available
+        # For now, provide basic context analysis
+        context_indicators = [
+            'conversation', 'discussion', 'talking about', 'regarding',
+            'conclusion', 'summary', 'key point', 'important', 'critical'
+        ]
+
+        context_matches = sum(1 for indicator in context_indicators if indicator in text.lower())
+        return min(0.1, context_matches * 0.03)
+
+    def _assess_content_quality(self, text: str, word_list: List[str], semantic_patterns: Dict) -> Dict[str, Any]:
+        """Assess overall content quality for importance determination"""
+        quality_score = 0.0
+
+        # Lexical diversity (unique words vs total words)
+        if word_list:
+            lexical_diversity = len(set(word_list)) / len(word_list)
+            if lexical_diversity > 0.6:
+                quality_score += 0.05  # High lexical diversity indicates quality
+
+        # Semantic coherence (multiple related concepts)
+        if len(semantic_patterns.get('dominant_patterns', [])) >= 2:
+            quality_score += 0.06  # Multiple semantic themes
+
+        # Information density
+        info_indicators = ['because', 'therefore', 'however', 'although', 'since', 'unless']
+        info_density = sum(1 for word in info_indicators if word in text.lower())
+        quality_score += min(0.08, info_density * 0.02)
+
+        return {
+            'quality_bonus': min(0.15, quality_score),
+            'lexical_diversity': lexical_diversity if word_list else 0,
+            'semantic_coherence': len(semantic_patterns.get('dominant_patterns', [])),
+            'information_density': info_density
         }
 
     def _extract_tags_from_text(self, text: str, analysis: Dict[str, Any]) -> List[str]:
-        """Automatically extract relevant tags from text"""
-        tags = []
+        """Enhanced automatic tag extraction with semantic analysis and context awareness"""
+        tags = set()
         text_lower = text.lower()
 
-        # Add tags based on content analysis
-        if analysis['technical_terms_found'] > 0:
-            tags.append("technical")
+        # Priority-based tag categories
+        tag_categories = {
+            'technical': {
+                'terms': self.technical_terms,
+                'threshold': 1,
+                'tags': ['technical']
+            },
+            'achievement': {
+                'terms': ['implement', 'create', 'build', 'develop', 'solve', 'fix', 'complete', 'achieve', 'accomplish'],
+                'threshold': 2,
+                'tags': ['implementation', 'achievement', 'development']
+            },
+            'architecture': {
+                'terms': ['system', 'architecture', 'framework', 'design', 'structure', 'pattern'],
+                'threshold': 1,
+                'tags': ['architecture', 'system', 'design']
+            },
+            'optimization': {
+                'terms': ['optimize', 'improve', 'performance', 'efficiency', 'speed', 'memory', 'scale'],
+                'threshold': 2,
+                'tags': ['optimization', 'performance', 'efficiency']
+            },
+            'learning': {
+                'terms': ['learn', 'discover', 'understand', 'realize', 'master', 'knowledge', 'insight'],
+                'threshold': 1,
+                'tags': ['learning', 'discovery', 'insight']
+            },
+            'problem_solving': {
+                'terms': ['problem', 'issue', 'challenge', 'solution', 'approach', 'method', 'resolve'],
+                'threshold': 2,
+                'tags': ['problem_solving', 'solution', 'debugging']
+            }
+        }
 
-        if analysis['has_code']:
-            tags.append("code")
+        # Analyze semantic patterns for intelligent tagging
+        semantic_patterns = analysis.get('semantic_patterns', {})
+        pattern_scores = semantic_patterns.get('pattern_scores', {})
+        dominant_patterns = semantic_patterns.get('dominant_patterns', [])
 
-        if analysis['important_keywords_found'] > 0:
-            tags.append("important")
+        # Add tags based on dominant semantic patterns
+        pattern_to_category = {
+            'action_verbs': ['implementation', 'achievement'],
+            'achievement_indicators': ['achievement', 'success'],
+            'technical_concepts': ['technical', 'architecture'],
+            'learning_indicators': ['learning', 'discovery'],
+            'problem_solution': ['problem_solving', 'solution']
+        }
 
-        # Add specific technical tags
+        for pattern in dominant_patterns:
+            if pattern in pattern_to_category:
+                tags.update(pattern_to_category[pattern])
+
+        # Add tags based on category analysis
+        for category, config in tag_categories.items():
+            matches = sum(1 for term in config['terms'] if term in text_lower)
+            if matches >= config['threshold']:
+                tags.update(config['tags'])
+
+        # Content-based tag addition
+        if analysis.get('has_code', False):
+            tags.add("code")
+        if analysis.get('important_keywords_found', 0) > 0:
+            tags.add("important")
+        if analysis.get('has_lists', False):
+            tags.add("structured")
+        if analysis.get('has_numbers', False):
+            tags.add("quantitative")
+
+        # Quality-based tags
+        quality_indicators = analysis.get('quality_indicators', {})
+        if quality_indicators.get('lexical_diversity', 0) > 0.7:
+            tags.add("high_quality")
+        if quality_indicators.get('semantic_coherence', 0) >= 3:
+            tags.add("comprehensive")
+        if quality_indicators.get('information_density', 0) >= 2:
+            tags.add("informative")
+
+        # Length and structure based tags
+        word_count = analysis.get('word_count', 0)
+        if word_count < 10:
+            tags.add("brief")
+        elif word_count > 50:
+            tags.add("detailed")
+
+        # Specific technical term tags (high priority)
+        technical_terms_found = []
         for term in self.technical_terms:
             if term in text_lower:
-                tags.append(term)
+                technical_terms_found.append(term)
 
-        # Add achievement/project tags
-        if any(word in text_lower for word in ['implement', 'create', 'build', 'develop']):
-            tags.append("implementation")
+        # Only add top technical terms to avoid tag explosion
+        technical_terms_found.sort(key=lambda x: len(x), reverse=True)  # Prefer longer, more specific terms
+        for term in technical_terms_found[:3]:  # Limit to top 3
+            tags.add(term)
 
-        if any(word in text_lower for word in ['system', 'architecture', 'framework']):
-            tags.append("architecture")
+        # Remove redundant tags (keep more specific ones)
+        redundant_mappings = {
+            'technical': ['code'],  # If we have 'technical', 'code' is redundant
+            'implementation': ['development'],  # 'implementation' covers 'development'
+            'architecture': ['system'],  # 'architecture' is more specific than 'system'
+        }
 
-        if any(word in text_lower for word in ['optimize', 'improve', 'performance']):
-            tags.append("optimization")
+        for specific, general in redundant_mappings.items():
+            if specific in tags:
+                tags.difference_update(general)
 
-        return list(set(tags))  # Remove duplicates
+        return sorted(list(tags))  # Return sorted list for consistency
 
     def get_capture_statistics(self) -> Dict[str, Any]:
         """Get statistics about automatic memory capture"""
@@ -775,6 +1022,45 @@ def execute_bootstrap_tool() -> str:
 💾 **MEMORY PROTOCOL**: At the end of important responses, save key insights using: `python quick_memory.py add "insight" "tags" importance`
 
 🚀 **READY**: Memory system is now active for this conversation."""
+
+
+# CRITICAL: Automatic bootstrap execution on module import (conversation start)
+# This runs when the module is imported, which happens at the start of every conversation
+if not _AUTO_BOOTSTRAP_EXECUTED:
+    try:
+        print("🔄 Memory system module loaded - checking bootstrap status...")
+        bootstrap_state_file = Path(__file__).parent / ".bootstrap_complete"
+
+        if not bootstrap_state_file.exists():
+            print("🧠 Executing automatic bootstrap on conversation start...")
+            # Initialize memory integration first
+            try:
+                from memory_integration import MemoryIntegration
+                print("✅ Memory integration system available")
+
+                # Now execute bootstrap
+                bootstrap = MemoryBootstrap()
+                integration = bootstrap.initialize_memory_system()
+                _AUTO_BOOTSTRAP_EXECUTED = True
+                print("✅ Automatic bootstrap completed successfully")
+
+            except ImportError as e:
+                print(f"⚠️  Memory integration not available: {e}")
+                print("🔧 Attempting fallback bootstrap...")
+                try:
+                    # Fallback to basic bootstrap
+                    knowledge = get_conversation_bootstrap_knowledge()
+                    print("✅ Fallback bootstrap knowledge loaded")
+                    _AUTO_BOOTSTRAP_EXECUTED = True
+                except Exception as e2:
+                    print(f"❌ Fallback bootstrap failed: {e2}")
+        else:
+            print("✅ Bootstrap already completed in previous session")
+            _AUTO_BOOTSTRAP_EXECUTED = True
+
+    except Exception as e:
+        print(f"❌ Critical bootstrap error: {e}")
+        print("🔧 Memory system may be limited for this conversation")
 
 
 if __name__ == "__main__":
