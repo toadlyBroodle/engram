@@ -147,6 +147,18 @@ class MemoryBootstrap:
                 "importance": 0.9,
                 "tags": ["memory", "project", "workflow", "best_practice", "bootstrap"],
                 "context": {"type": "bootstrap", "purpose": "establish_memory_habits"}
+            },
+            {
+                "content": "CRITICAL: At the end of EVERY important reply, I MUST save key insights, learnings, and achievements to the memory system using 'python quick_memory.py add'. This prevents knowledge loss and enables continuous self-improvement. Memory retention is essential for persistent intelligence.",
+                "importance": 1.0,
+                "tags": ["memory", "retention", "critical", "self_improvement", "bootstrap", "essential"],
+                "context": {"type": "bootstrap", "purpose": "enforce_memory_discipline"}
+            },
+            {
+                "content": "MEMORY DISCIPLINE PROTOCOL: After any significant accomplishment, bug fix, performance improvement, or learning experience, immediately capture it in the memory system. This creates a persistent knowledge base that grows with each interaction and prevents regression or forgetting important insights.",
+                "importance": 1.0,
+                "tags": ["memory", "discipline", "protocol", "retention", "continuous_learning", "bootstrap"],
+                "context": {"type": "bootstrap", "purpose": "establish_memory_protocol"}
             }
         ]
 
@@ -461,6 +473,27 @@ python quick_memory.py stats
         ]
 
         print(f"🧹 Cleaned up automatic captures, keeping {len(self.captured_insights)} recent insights")
+
+    def get_memory_saving_reminder(self) -> str:
+        """
+        Get a reminder about the importance of saving memories
+
+        Returns:
+            Formatted reminder message
+        """
+        return "\n🧠 **MEMORY RETENTION REMINDER**: This response contains important insights or achievements. Save them to the memory system using:\n`python quick_memory.py add \"key insight\" \"tags\" importance`\n\nThis ensures knowledge persistence and enables continuous self-improvement! 📚✨"
+
+    def enforce_memory_discipline(self, context: str = "response_end") -> str:
+        """
+        Enforce memory discipline by providing a strong reminder
+
+        Args:
+            context: Context for the reminder
+
+        Returns:
+            Formatted enforcement message
+        """
+        return f"\n🔴 **CRITICAL MEMORY PROTOCOL**: {context} - IMMEDIATELY SAVE IMPORTANT INSIGHTS!\n\nUse: `python quick_memory.py add \"insight\" \"tags\" 0.8+`\n\nMemory retention prevents knowledge loss and enables persistent intelligence! 🧠💾"
 
     def check_and_commit_milestone(self, context: str = "autonomous_improvement"):
         """

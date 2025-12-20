@@ -96,6 +96,20 @@ def check_autonomous_milestone(context: str = "manual_check") -> str:
         return f"❌ Error checking milestone: {e}"
 
 
+def get_memory_reminder() -> str:
+    """Get a memory-saving reminder"""
+    try:
+        integration = MemoryIntegration()
+
+        if hasattr(integration.bootstrap_handler, 'get_memory_saving_reminder'):
+            return integration.bootstrap_handler.get_memory_saving_reminder()
+        else:
+            return "🧠 **MEMORY REMINDER**: Save important insights!\nUse: python quick_memory.py add \"insight\" \"tags\" 0.8"
+
+    except Exception as e:
+        return f"❌ Error getting reminder: {e}"
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
@@ -103,6 +117,7 @@ if __name__ == "__main__":
         print("  python quick_memory.py add \"memory content\" \"tag1,tag2\" 0.8")
         print("  python quick_memory.py stats")
         print("  python quick_memory.py milestone [context]")
+        print("  python quick_memory.py remind")
         sys.exit(1)
 
     command = sys.argv[1].lower()
@@ -128,5 +143,9 @@ if __name__ == "__main__":
         result = check_autonomous_milestone(context)
         print(result)
 
+    elif command == "remind":
+        result = get_memory_reminder()
+        print(result)
+
     else:
-        print("❌ Invalid command. Use 'query', 'add', 'stats', or 'milestone'")
+        print("❌ Invalid command. Use 'query', 'add', 'stats', 'milestone', or 'remind'")
