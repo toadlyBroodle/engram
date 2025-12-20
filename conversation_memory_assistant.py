@@ -15,6 +15,7 @@ import json
 import argparse
 from typing import List, Dict, Any
 from memory_integration import MemoryIntegration
+from bootstrap_memory import MemoryBootstrap
 from datetime import datetime
 
 
@@ -28,11 +29,13 @@ class ConversationMemoryAssistant:
 
     def __init__(self, memory_path: str = "vector_memory"):
         self.integration = MemoryIntegration(memory_path=memory_path)
+        self.bootstrap_handler = MemoryBootstrap(memory_path, self.integration)
         self.conversation_buffer = []
         self.session_start = datetime.now()
 
         print("🧠 Conversation Memory Assistant initialized")
         print("💡 Ready to enhance conversations with persistent memory")
+        print("🔄 Automatic insight capture enabled")
         print("=" * 60)
 
     def process_conversation_turn(self, speaker: str, message: str) -> Dict[str, Any]:
@@ -53,6 +56,18 @@ class ConversationMemoryAssistant:
             "message": message,
             "timestamp": datetime.now()
         })
+
+        # Automatically capture important insights
+        if len(message) > 20:  # Only check substantial messages
+            try:
+                self.bootstrap_handler.capture_important_insight(
+                    text=message,
+                    context=f"live_assistant_{speaker}",
+                    importance=None
+                )
+            except Exception as e:
+                # Don't let auto-capture failures break the conversation
+                pass
 
         # Get relevant memories for this context
         memory_result = self.integration.get_context_memories()

@@ -19,6 +19,7 @@ from datetime import datetime
 from persistent_memory import VectorMemory
 from memory_context import MemoryContextIntegrator, create_memory_context_integrator
 from context_window_manager import ContextWindowManager, create_default_context_manager
+from bootstrap_memory import MemoryBootstrap
 
 
 class MemoryIntegration:
@@ -51,7 +52,12 @@ class MemoryIntegration:
         self.auto_save = auto_save
         self.conversation_history = []
 
+        # Initialize automatic memory capture
+        self.bootstrap_handler = MemoryBootstrap(memory_path, self)
+        self.auto_capture_enabled = True
+
         print("🧠 Memory Integration System initialized")
+        print("🔄 Automatic memory capture enabled")
 
     def update_conversation(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
         """
@@ -78,6 +84,10 @@ class MemoryIntegration:
         # Keep only recent history to avoid memory bloat
         if len(self.conversation_history) > 50:  # Keep last 50 messages
             self.conversation_history = self.conversation_history[-50:]
+
+        # Automatically capture important insights
+        if self.auto_capture_enabled and len(content) > 20:  # Only check substantial messages
+            self._check_and_capture_insight(content, role)
 
     def get_context_memories(self, query: Optional[str] = None,
                            max_memories: int = 5,
@@ -225,6 +235,46 @@ class MemoryIntegration:
             self.conversation_history = self.conversation_history[-50:]
 
         print("⚡ System optimized for performance")
+
+    def _check_and_capture_insight(self, content: str, speaker: str):
+        """Check if content contains important insights worth remembering"""
+        try:
+            captured = self.bootstrap_handler.capture_important_insight(
+                text=content,
+                context=f"conversation_{speaker}",
+                importance=None  # Let the system determine importance
+            )
+            if captured:
+                # Update memory usage statistics for the newly captured memory
+                # This will help with future relevance scoring
+                pass  # The capture method already handles this
+        except Exception as e:
+            # Don't let auto-capture failures break the conversation flow
+            print(f"⚠️  Auto-capture failed: {e}")
+
+    def get_auto_capture_statistics(self) -> Dict[str, Any]:
+        """Get statistics about automatic memory capture"""
+        return self.bootstrap_handler.get_capture_statistics()
+
+    def toggle_auto_capture(self, enabled: bool = None) -> bool:
+        """
+        Toggle automatic memory capture on/off
+
+        Args:
+            enabled: If provided, set to this state. If None, toggle current state.
+
+        Returns:
+            New state of auto capture
+        """
+        if enabled is not None:
+            self.auto_capture_enabled = enabled
+        else:
+            self.auto_capture_enabled = not self.auto_capture_enabled
+
+        state_text = "enabled" if self.auto_capture_enabled else "disabled"
+        print(f"🔄 Automatic memory capture {state_text}")
+
+        return self.auto_capture_enabled
 
     def export_context_snapshot(self, filepath: str = None) -> str:
         """

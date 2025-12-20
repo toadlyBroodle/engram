@@ -15,9 +15,10 @@ BOOT SEQUENCE:
 
 import json
 import os
+import re
 from pathlib import Path
-from memory_integration import MemoryIntegration
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
 
 
 class MemoryBootstrap:
@@ -28,12 +29,27 @@ class MemoryBootstrap:
     memory capabilities, ensuring persistent self-awareness.
     """
 
-    def __init__(self, memory_path: str = "vector_memory"):
+    def __init__(self, memory_path: str = "vector_memory", memory_system=None):
         self.memory_path = memory_path
         self.bootstrap_memories_file = Path(__file__).parent / "bootstrap_memories.json"
-        self.integration = None
+        self.memory_system = memory_system
 
-    def initialize_memory_system(self) -> MemoryIntegration:
+        # Automatic memory capture settings
+        self.auto_capture_enabled = True
+        self.captured_insights = []
+        self.important_keywords = {
+            'discover', 'learn', 'accomplish', 'achieve', 'implement', 'create', 'build',
+            'solve', 'fix', 'optimize', 'improve', 'develop', 'design', 'architecture',
+            'system', 'framework', 'algorithm', 'solution', 'breakthrough', 'innovation',
+            'milestone', 'progress', 'advancement', 'capability', 'feature', 'functionality'
+        }
+        self.technical_terms = {
+            'vector', 'embedding', 'neural', 'network', 'machine', 'learning', 'ai',
+            'memory', 'database', 'search', 'semantic', 'context', 'token', 'model',
+            'algorithm', 'optimization', 'performance', 'efficiency', 'architecture'
+        }
+
+    def initialize_memory_system(self):
         """
         Initialize the complete memory system with bootstrap knowledge
 
@@ -55,6 +71,10 @@ class MemoryBootstrap:
         print("✅ Memory system bootstrap complete!")
         print("🎯 AI now has persistent memory capabilities")
         print("=" * 60)
+
+        # Enable automatic memory capture
+        if self.auto_capture_enabled:
+            self._enable_auto_capture()
 
         return self.integration
 
@@ -118,7 +138,7 @@ class MemoryBootstrap:
         # Add each bootstrap memory to the system
         for i, memory_data in enumerate(bootstrap_memories, 1):
             try:
-                memory_id = self.integration.add_memory(
+                memory_id = self.memory_system.add_memory(
                     content=memory_data["content"],
                     importance=memory_data["importance"],
                     tags=memory_data["tags"],
@@ -248,8 +268,183 @@ python quick_memory.py stats
 
         print("✅ Bootstrap demonstration complete!")
 
+    def _enable_auto_capture(self):
+        """Enable automatic capture of important information during conversations"""
+        print("🔄 Enabling automatic memory capture...")
+        print("📝 Will automatically identify and store important insights")
 
-def bootstrap_memory_system(memory_path: str = "vector_memory") -> MemoryIntegration:
+    def capture_important_insight(self, text: str, context: str = "conversation",
+                                 importance: Optional[float] = None) -> bool:
+        """
+        Automatically capture important insights from conversations
+
+        Args:
+            text: The text content to analyze
+            context: Context where the insight was found
+            importance: Optional importance score override
+
+        Returns:
+            True if insight was captured and stored
+        """
+        if not self.auto_capture_enabled or not self.memory_system:
+            return False
+
+        # Analyze text for importance
+        analysis = self._analyze_text_importance(text)
+
+        if not analysis['is_important']:
+            return False
+
+        # Determine importance score
+        if importance is None:
+            importance = analysis['calculated_importance']
+
+        # Extract tags automatically
+        tags = self._extract_tags_from_text(text, analysis)
+
+        # Store the memory
+        try:
+            memory_id = self.memory_system.add_memory(
+                content=text,
+                importance=importance,
+                tags=tags,
+                context={
+                    "type": "auto_captured",
+                    "source": context,
+                    "analysis": analysis,
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+
+            # Track captured insights
+            self.captured_insights.append({
+                "id": memory_id,
+                "content": text[:100] + "..." if len(text) > 100 else text,
+                "importance": importance,
+                "tags": tags,
+                "context": context,
+                "timestamp": datetime.now()
+            })
+
+            print(f"🧠 Auto-captured insight: {text[:80]}... (importance: {importance:.2f})")
+            return True
+
+        except Exception as e:
+            print(f"⚠️  Failed to auto-capture insight: {e}")
+            return False
+
+    def _analyze_text_importance(self, text: str) -> Dict[str, Any]:
+        """
+        Analyze text to determine if it's important enough to remember
+
+        Returns:
+            Dict with importance analysis
+        """
+        text_lower = text.lower()
+        words = set(text_lower.split())
+
+        # Count important keywords
+        important_count = len(self.important_keywords & words)
+        technical_count = len(self.technical_terms & words)
+
+        # Length and structure analysis
+        word_count = len(words)
+        has_sentences = len(re.findall(r'[.!?]', text)) > 0
+        has_code = bool(re.search(r'```|`|\.py|\.sh|python|bash', text))
+
+        # Calculate importance score
+        base_score = 0.3  # Minimum threshold
+
+        # Keyword bonuses
+        base_score += min(0.3, important_count * 0.1)  # Max 0.3 for important keywords
+        base_score += min(0.2, technical_count * 0.05)  # Max 0.2 for technical terms
+
+        # Structure bonuses
+        if has_sentences and word_count > 10:
+            base_score += 0.2  # Well-formed content
+        if has_code:
+            base_score += 0.2  # Contains code/implementation
+        if word_count > 50:
+            base_score += 0.1  # Substantial content
+
+        # Context bonuses
+        if any(term in text_lower for term in ['solution', 'breakthrough', 'accomplished', 'completed']):
+            base_score += 0.2  # Achievement indicators
+
+        return {
+            'is_important': base_score >= 0.5,
+            'calculated_importance': min(1.0, base_score),
+            'important_keywords_found': important_count,
+            'technical_terms_found': technical_count,
+            'word_count': word_count,
+            'has_sentences': has_sentences,
+            'has_code': has_code
+        }
+
+    def _extract_tags_from_text(self, text: str, analysis: Dict[str, Any]) -> List[str]:
+        """Automatically extract relevant tags from text"""
+        tags = []
+        text_lower = text.lower()
+
+        # Add tags based on content analysis
+        if analysis['technical_terms_found'] > 0:
+            tags.append("technical")
+
+        if analysis['has_code']:
+            tags.append("code")
+
+        if analysis['important_keywords_found'] > 0:
+            tags.append("important")
+
+        # Add specific technical tags
+        for term in self.technical_terms:
+            if term in text_lower:
+                tags.append(term)
+
+        # Add achievement/project tags
+        if any(word in text_lower for word in ['implement', 'create', 'build', 'develop']):
+            tags.append("implementation")
+
+        if any(word in text_lower for word in ['system', 'architecture', 'framework']):
+            tags.append("architecture")
+
+        if any(word in text_lower for word in ['optimize', 'improve', 'performance']):
+            tags.append("optimization")
+
+        return list(set(tags))  # Remove duplicates
+
+    def get_capture_statistics(self) -> Dict[str, Any]:
+        """Get statistics about automatic memory capture"""
+        if not self.captured_insights:
+            return {"captured_insights": 0, "total_importance": 0, "average_importance": 0}
+
+        total_importance = sum(insight['importance'] for insight in self.captured_insights)
+        avg_importance = total_importance / len(self.captured_insights)
+
+        return {
+            "captured_insights": len(self.captured_insights),
+            "total_importance": total_importance,
+            "average_importance": avg_importance,
+            "recent_captures": self.captured_insights[-3:] if self.captured_insights else []
+        }
+
+    def review_and_cleanup_captures(self, max_age_days: int = 30):
+        """Review and cleanup old automatic captures"""
+        if not self.captured_insights:
+            return
+
+        cutoff_date = datetime.now() - timedelta(days=max_age_days)
+
+        # Keep only recent captures
+        self.captured_insights = [
+            insight for insight in self.captured_insights
+            if insight['timestamp'] > cutoff_date
+        ]
+
+        print(f"🧹 Cleaned up automatic captures, keeping {len(self.captured_insights)} recent insights")
+
+
+def bootstrap_memory_system(memory_path: str = "vector_memory"):
     """
     Bootstrap the complete memory system for AI initialization
 
