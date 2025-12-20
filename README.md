@@ -131,8 +131,9 @@ The system now includes intelligent memory integration that ensures relevant mem
    - Hardware-aware batch processing
    - Real-time context optimization
 
-### Usage Example
+### Usage Examples
 
+#### Basic Integration
 ```python
 from memory_integration import MemoryIntegration
 
@@ -153,6 +154,54 @@ integration.update_conversation("assistant", "They use embeddings...")
 context_result = integration.get_context_memories()
 print(context_result["formatted_context"])
 # Output: 🔥 CRITICAL CONTEXT:\n• Vector databases use embeddings...
+```
+
+#### Real-time Cursor IDE Integration
+
+**Quick Memory Queries (during conversations):**
+```bash
+cd /home/rob/Dev/persistent_memory_project
+source .venv/bin/activate
+
+# Get memory suggestions for current topic
+python quick_memory.py query "your question or topic here"
+
+# Add new memories during conversation
+python quick_memory.py add "memory content" "tag1,tag2" 0.8
+
+# Check memory system stats
+python quick_memory.py stats
+```
+
+**Live Conversation Assistant:**
+```bash
+# Start interactive memory assistant
+python conversation_memory_assistant.py --live
+
+# Then paste conversation messages to get real-time memory suggestions
+> How does the memory system work?
+👤 User message processed: How does the memory system work?
+📚 5 relevant memories available (73 tokens)
+💡 Type 'suggest' to see memory enhancement suggestions!
+
+> suggest
+🎯 **Memory Enhancement Suggestion**
+Found 5 relevant memories (73 tokens):
+🔥 CRITICAL CONTEXT:
+• The memory integration system uses FAISS vector search...
+```
+
+**Example Integration in Action:**
+```bash
+$ python quick_memory.py query "memory integration system"
+🧠 **Relevant Memories** (3 found, 81.0 tokens):
+
+🔥 CRITICAL CONTEXT:
+• The memory integration system uses FAISS vector search, sentence transformers for embeddings, and multi-factor relevance scoring to provide contextually relevant memories during conversations
+
+📝 RELEVANT INFORMATION:
+• Memory consolidation maintains quality while managing storage limits
+• Memory consolidation maintains quality while managing storage limits
 ```
 
 ## 🤝 Contributing
