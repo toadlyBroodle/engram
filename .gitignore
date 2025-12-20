@@ -1,0 +1,43 @@
+# Hardware configuration (keep for documentation)
+# hardware_config.json
+
+# Vector memory storage
+vector_memory/
+*.pkl
+*.bin
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database files (legacy)
+*.db
+demo_*.db
+
+# Model downloads (sentence-transformers cache)
+.cache/
+huggingface/

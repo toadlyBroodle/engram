@@ -1,0 +1,37 @@
+{
+  "timestamp": "2025-12-20T00:00:00Z",
+  "architecture": "x86_64",
+  "cpu": {
+    "model": "Intel(R) Core(TM) i7-6600U CPU @ 2.60GHz",
+    "cores": 4,
+    "threads_per_core": 2,
+    "vendor": "GenuineIntel",
+    "flags": ["fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce", "cx8", "apic", "sep", "mtrr", "pge", "mca", "cmov", "pat", "pse36", "clflush", "mmx", "fxsr", "sse", "sse2", "ss", "ht", "syscall", "nx", "pdpe1gb", "rdtscp", "lm", "constant_tsc", "arch_perfmon", "rep_good", "nopl", "xtopology", "cpuid", "tsc_known_freq", "pni", "pclmulqdq", "ssse3", "fma", "cx16", "pdcm", "pcid", "sse4_1", "sse4_2", "movbe", "popcnt", "aes", "xsave", "avx", "f16c", "rdrand", "hypervisor", "lahf_lm", "abm", "3dnowprefetch", "pti", "ssbd", "ibrs", "ibpb", "stibp", "fsgsbase", "bmi1", "hle", "avx2", "smep", "bmi2", "erms", "invpcid", "rtm", "rdseed", "adx", "smap", "clflushopt", "xsaveopt", "xsavec", "xgetbv1", "xsaves", "md_clear", "flush_l1d", "arch_capabilities"],
+    "has_avx2": true,
+    "has_avx": true
+  },
+  "memory": {
+    "total_gb": 5.8,
+    "available_gb": 4.6
+  },
+  "gpu": {
+    "nvidia_gpu": false,
+    "other_accelerators": false
+  },
+  "storage": {
+    "available_gb": 937
+  },
+  "environment": {
+    "os": "Linux (WSL2)",
+    "hypervisor": "Microsoft",
+    "virtualization": "full"
+  },
+  "recommendations": {
+    "use_gpu": false,
+    "max_memory_usage": "2GB",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "vector_index": "faiss-cpu",
+    "batch_size": 32,
+    "max_memories": 10000
+  }
+}
