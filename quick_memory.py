@@ -96,6 +96,15 @@ def check_autonomous_milestone(context: str = "manual_check") -> str:
         return f"❌ Error checking milestone: {e}"
 
 
+def get_conversation_bootstrap() -> str:
+    """Get bootstrap knowledge for Cursor IDE conversations"""
+    try:
+        from bootstrap_memory import bootstrap_conversation_awareness
+        return bootstrap_conversation_awareness()
+    except Exception as e:
+        return f"❌ Error getting bootstrap knowledge: {e}"
+
+
 def get_memory_reminder() -> str:
     """Get a memory-saving reminder"""
     try:
@@ -143,9 +152,13 @@ if __name__ == "__main__":
         result = check_autonomous_milestone(context)
         print(result)
 
+    elif command == "bootstrap":
+        result = get_conversation_bootstrap()
+        print(result)
+
     elif command == "remind":
         result = get_memory_reminder()
         print(result)
 
     else:
-        print("❌ Invalid command. Use 'query', 'add', 'stats', 'milestone', or 'remind'")
+        print("❌ Invalid command. Use 'query', 'add', 'stats', 'milestone', 'bootstrap', or 'remind'")

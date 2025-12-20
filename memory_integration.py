@@ -57,18 +57,12 @@ class MemoryIntegration:
         self.bootstrap_handler = MemoryBootstrap(memory_path, self)
         self.auto_capture_enabled = True
 
-        # Set the integration reference in bootstrap handler first
+        # Set the integration reference in bootstrap handler
         if hasattr(self.bootstrap_handler, 'set_integration_reference'):
             self.bootstrap_handler.set_integration_reference(self)
 
-        # Ensure bootstrap is complete for all new conversations
-        self._ensure_bootstrap_complete()
-
         print("🧠 Memory Integration System initialized")
         print("🔄 Automatic memory capture enabled")
-
-        # Check for autonomous milestone after initialization
-        self._check_autonomous_milestone("system_initialization")
 
     def update_conversation(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
         """
@@ -246,30 +240,6 @@ class MemoryIntegration:
             self.conversation_history = self.conversation_history[-50:]
 
         print("⚡ System optimized for performance")
-
-    def _ensure_bootstrap_complete(self):
-        """
-        Ensure bootstrap is complete for all new conversations.
-        Automatically runs bootstrap if it hasn't been completed yet.
-        """
-        if not self.bootstrap_handler._is_bootstrap_complete():
-            print("🔄 BOOTSTRAP REQUIRED: Running automatic bootstrap for new conversation...")
-            print("-" * 70)
-
-            # Run bootstrap initialization
-            self.bootstrap_handler._load_bootstrap_memories()
-            self.bootstrap_handler._verify_bootstrap()
-            self.bootstrap_handler._mark_bootstrap_complete()
-
-            # Enable automatic memory capture
-            if self.bootstrap_handler.auto_capture_enabled:
-                self.bootstrap_handler._enable_auto_capture()
-
-            print("✅ AUTOMATIC BOOTSTRAP COMPLETE!")
-            print("🎯 AI memory capabilities now available for this conversation")
-            print("-" * 70)
-        else:
-            print("✅ Bootstrap already complete - memory system ready")
 
     def _check_autonomous_milestone(self, context: str = "operation_complete"):
         """Check if current state warrants an autonomous milestone commit"""

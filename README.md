@@ -53,9 +53,9 @@ pip install transformers sentence-transformers dataclasses-json
 
 ### 🚀 Bootstrap for New Conversations
 
-**Bootstrap now runs automatically** at the start of every new conversation when the memory system is initialized. The system automatically detects if bootstrap is needed and runs it seamlessly.
+**In Cursor IDE Environment**: The model automatically bootstraps its memory system knowledge at the start of every conversation through `bootstrap_conversation_awareness()`.
 
-For manual bootstrap or system setup:
+For **terminal/manual bootstrap** or system setup:
 
 ```bash
 # One-command bootstrap (recommended)
@@ -66,13 +66,16 @@ source .venv/bin/activate
 python bootstrap_memory.py
 ```
 
-**The system now automatically maintains persistent self-awareness across all conversations through automatic bootstrap enforcement.**
+**Model-level bootstrap ensures persistent self-awareness** in the chat environment, while system-level bootstrap handles the vector database initialization.
 
 ### 💻 Cursor IDE Integration
 
 **For real-time memory access during conversations:**
 
 ```bash
+# 🚀 START EVERY CONVERSATION WITH BOOTSTRAP
+python quick_memory.py bootstrap
+
 # Quick memory queries
 python quick_memory.py query "your topic"
 
@@ -85,7 +88,7 @@ python quick_memory.py add "insight" "tags" 0.8
 # Check memory statistics
 python quick_memory.py stats
 
-# Trigger autonomous milestone check
+# Trigger autonomous milestone check (significant improvements only)
 python quick_memory.py milestone [context]
 
 # Get memory-saving reminder
@@ -304,7 +307,7 @@ This project tracks significant self-improvement achievements through git commit
 - ✅ **Autonomous Milestone System** - AI independently commits improvements when thresholds are met
 - ✅ **Bootstrap Memory Seeding** - Automatically marks core memories as integrated for better metrics
 - ✅ **Memory Discipline Protocol** - Bootstrap-level enforcement of memory retention and insight capture
-- ✅ **Automatic Bootstrap Enforcement** - Every new conversation automatically runs bootstrap to ensure persistent self-awareness
+- ✅ **Model-Level Bootstrap System** - Model automatically bootstraps memory system knowledge at the start of every Cursor IDE conversation
 
 ### System Architecture Overview
 

@@ -541,37 +541,38 @@ python quick_memory.py stats
     def _assess_milestone_worthiness(self) -> List[str]:
         """
         Assess if current system state warrants a milestone commit
+        Only commit for significant improvements, not every initialization
 
         Returns:
             List of reasons why this should be a milestone
         """
         reasons = []
 
-        # Check memory growth (more sensitive threshold)
+        # Check memory growth (significant threshold - not every memory)
         current_memory_count = len(self.integration.memory_system.memories)
         memory_growth = current_memory_count - self.last_milestone_memory_count
 
-        if memory_growth >= 1:  # Any growth is milestone-worthy
+        if memory_growth >= 10:  # Only significant growth is milestone-worthy
             reasons.append(f"Memory growth: +{memory_growth} memories (now {current_memory_count} total)")
 
-        # Check system stats improvements
+        # Check system stats improvements (significant improvements only)
         stats = self.integration.get_system_status()
 
-        # Check integration rate - any integration above 0% is good
+        # Check integration rate - significant improvement
         integration_rate = stats['integration_layer']['integration_rate']
-        if integration_rate > 0.0:  # Any integration is better than none
+        if integration_rate > 0.5:  # Only when integration rate is substantial
             reasons.append(f"Integration rate: {integration_rate:.1%}")
 
-        # Check performance metrics - lower threshold
+        # Check performance metrics - significant threshold
         performance = stats['integration_layer'].get('performance', {})
-        if performance and performance.get('queries_per_second', 0) > 10:  # Much lower threshold
+        if performance and performance.get('queries_per_second', 0) > 50:  # Higher threshold for significance
             reasons.append(f"Performance: {performance['queries_per_second']:.1f} queries/sec")
 
-        # Check for recent auto-captured insights
-        if len(self.captured_insights) > 0:
+        # Check for substantial auto-captured insights
+        if len(self.captured_insights) >= 5:  # Only when there are many new insights
             reasons.append(f"Active learning: {len(self.captured_insights)} recent insights captured")
 
-        # Check for code changes (significant improvement indicator)
+        # Check for significant code changes (not every small change)
         import subprocess
         import os
         try:
@@ -581,11 +582,9 @@ python quick_memory.py stats
                                   capture_output=True, text=True, cwd=str(project_root))
             if result.returncode == 0 and result.stdout.strip():
                 changed_lines = len(result.stdout.strip().split('\n'))
-                if changed_lines > 0:
-                    reasons.append(f"Code changes: {changed_lines} files modified")
-                    print(f"DEBUG: Detected {changed_lines} modified files")  # Debug output
+                if changed_lines >= 5:  # Only significant code changes
+                    reasons.append(f"Major code changes: {changed_lines} files modified")
         except Exception as e:
-            print(f"DEBUG: Git check failed: {e}")  # Debug output
             pass  # Git not available or other error
 
         return reasons
@@ -678,6 +677,64 @@ def get_memory_bootstrap_instructions():
     """Get formatted bootstrap instructions without initializing"""
     bootstrap = MemoryBootstrap()
     return bootstrap.get_bootstrap_instructions()
+
+
+def get_conversation_bootstrap_knowledge() -> str:
+    """
+    Get essential knowledge for bootstrapping model awareness in Cursor IDE chat environment.
+    This provides the model with immediate knowledge about how to use the memory system
+    without requiring external system initialization.
+
+    Returns:
+        Formatted string containing essential memory system knowledge
+    """
+    bootstrap_knowledge = """
+# 🧠 MEMORY SYSTEM BOOTSTRAP - CURSOR IDE CONVERSATION
+
+## CORE KNOWLEDGE - ALWAYS REMEMBER:
+
+### Memory System Access:
+- **Query memories**: `python quick_memory.py query "your topic"`
+- **Add memories**: `python quick_memory.py add "content" "tags" importance`
+- **Live assistant**: `python conversation_memory_assistant.py --live`
+- **System stats**: `python quick_memory.py stats`
+- **Milestone check**: `python quick_memory.py milestone "context"`
+
+### Essential Workflows:
+1. **Start every conversation** by checking: `python quick_memory.py query "topic"`
+2. **Add important insights** as memories during work
+3. **Use appropriate tags** and importance scores (0.0-1.0)
+4. **Save key learnings** at conversation end using memory commands
+
+### Memory Discipline Protocol:
+- **CRITICAL**: Save important insights with `python quick_memory.py add`
+- **ALWAYS** check memories before responding to complex questions
+- **NEVER** lose knowledge - memory retention enables continuous improvement
+
+### Current Project Context:
+- **Location**: /home/rob/Dev/persistent_memory_project
+- **Virtual Environment**: Always activate with `source .venv/bin/activate`
+- **Technology**: FAISS vector database with sentence transformers
+- **Purpose**: Self-improving AI memory system for persistent learning
+
+## IMMEDIATE ACTION ITEMS:
+- Check relevant memories for current conversation topic
+- Load project-specific knowledge from memory system
+- Be ready to add new insights as memories during this conversation
+"""
+
+    return bootstrap_knowledge.strip()
+
+
+def bootstrap_conversation_awareness() -> str:
+    """
+    Bootstrap function for Cursor IDE chat environment.
+    Model calls this at the very beginning of every new conversation.
+
+    Returns:
+        Essential knowledge string for immediate model awareness
+    """
+    return get_conversation_bootstrap_knowledge()
 
 
 if __name__ == "__main__":
