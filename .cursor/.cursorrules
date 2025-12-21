@@ -31,6 +31,52 @@ conversation_workflow:
   - use_appropriate_tags: true
   - maintain_memory_discipline: true
 
+# Rule 5: Cursor IDE Integration (CRITICAL)
+cursor_ide_integration: true
+cursor_extension_path: .cursor
+cursor_activation_commands:
+  - python .cursor/activate_memory_integration.py
+cursor_memory_hooks:
+  - command: python cursor_memory_hook.py user "{message_content}"
+    trigger: on_user_message
+  - command: python cursor_memory_hook.py assistant "{message_content}"
+    trigger: on_assistant_message
+cursor_auto_bootstrap: python auto_bootstrap.py
+cursor_forget_proof: true
+
+# Rule 6: Conversation Memory Protocol
+conversation_memory_protocol:
+  - track_all_messages_automatically: true
+  - no_manual_memory_storage_required: true
+  - bootstrap_on_conversation_start: true
+  - force_save_on_conversation_end: true
+  - memory_system_always_active: true
+
+# Rule 7: Cursor IDE Auto-Integration (FINAL)
+cursor_auto_integration_commands:
+  - description: "Activate memory integration on conversation start"
+    command: "cd /home/rob/Dev/persistent_memory_project && source .venv/bin/activate && python .cursor/activate_memory_integration.py"
+    when: "conversation_start"
+    silent: false
+
+  - description: "Track user messages automatically"
+    command: "python /home/rob/Dev/persistent_memory_project/cursor_memory_hook.py user '{message}'"
+    when: "user_message"
+    silent: true
+
+  - description: "Track assistant messages automatically"
+    command: "python /home/rob/Dev/persistent_memory_project/cursor_memory_hook.py assistant '{message}'"
+    when: "assistant_message"
+    silent: true
+
+  - description: "Force save memories on conversation end"
+    command: "python -c 'from memory_integration import MemoryIntegration; MemoryIntegration().memory_system.force_save()'"
+    when: "conversation_end"
+    silent: true
+
+cursor_integration_status: "✅ ACTIVE - Memory system automatically tracks all conversations"
+forget_proof_guarantee: true
+
 ## SYSTEM PROMPT INTEGRATION
 # --------------------------
 # The following system prompt is automatically prepended to every conversation

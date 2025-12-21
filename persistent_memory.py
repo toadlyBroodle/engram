@@ -357,6 +357,38 @@ class VectorMemory:
             if self.operation_count >= self.batch_save_interval:
                 self._save_persistent_data()
 
+    def delete_memory(self, memory_id: str) -> bool:
+        """
+        Delete a memory from the system
+
+        Args:
+            memory_id: ID of the memory to delete
+
+        Returns:
+            True if memory was deleted, False if not found
+        """
+        if memory_id not in self.memories:
+            return False
+
+        # Get the FAISS index position
+        faiss_idx = self.memories[memory_id].faiss_index
+
+        # Remove from memories dictionary
+        del self.memories[memory_id]
+
+        # Remove from ID mappings
+        if faiss_idx in self.idx_to_id:
+            del self.idx_to_id[faiss_idx]
+        if memory_id in self.id_to_idx:
+            del self.id_to_idx[memory_id]
+
+        # Note: FAISS index doesn't support easy deletion, so we'll rebuild it
+        # when saving. For now, mark that we have pending changes.
+        self.pending_changes = True
+
+        print(f"🗑️  Memory {memory_id} deleted")
+        return True
+
     def get_topic_relevant_memories(self, topic_keywords: List[str], limit: int = 5) -> List[MemoryEntry]:
         """Get memories relevant to specific topic keywords"""
         relevant_memories = []

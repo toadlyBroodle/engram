@@ -157,6 +157,23 @@ class MemoryIntegration:
 
         return memory_id
 
+    def delete_memory(self, memory_id: str) -> bool:
+        """
+        Delete a memory from the system
+
+        Args:
+            memory_id: ID of the memory to delete
+
+        Returns:
+            True if memory was deleted, False if not found
+        """
+        deleted = self.memory_system.delete_memory(memory_id)
+
+        if deleted and self.auto_save:
+            self.memory_system._save_persistent_data()
+
+        return deleted
+
     def get_conversation_context(self, include_memories: bool = True) -> Dict[str, Any]:
         """
         Get complete conversation context including integrated memories

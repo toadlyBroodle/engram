@@ -8,7 +8,13 @@ Demonstrates how relevant memories are automatically integrated into context.
 
 import json
 import time
+import sys
 from datetime import datetime
+from pathlib import Path
+
+# Add project directory to path (parent of test directory)
+project_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(project_dir))
 
 from memory_integration import MemoryIntegration
 from adaptive_memory import create_adaptive_memory_system

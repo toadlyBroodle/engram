@@ -12,8 +12,8 @@ import os
 from pathlib import Path
 import time
 
-# Add project directory to path
-project_dir = Path(__file__).parent
+# Add project directory to path (parent of test directory)
+project_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(project_dir))
 
 def test_auto_bootstrap():

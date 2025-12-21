@@ -71,6 +71,11 @@ def execute_unstoppable_bootstrap():
             memory_count = stats['memory_system']['total_memories']
             print(f"📊 System ready: {memory_count} memories available")
 
+            # Initialize automatic conversation tracking
+            from conversation_tracker import get_conversation_tracker
+            conversation_tracker = get_conversation_tracker()
+            print("🗣️ Automatic conversation tracking activated")
+
         except Exception as e:
             print(f"⚠️  Memory integration initialization: {e}")
 
