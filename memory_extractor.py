@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
+from token_tracker import tracker
+
 # Will be set when Gemini client is available
 _gemini_available = False
 _genai_client = None
@@ -38,40 +40,55 @@ class ExtractedMemory:
     source_context: str
 
 
-EXTRACTION_PROMPT = """Analyze this conversation exchange and extract any information worth remembering for future conversations.
+EXTRACTION_PROMPT = """Analyze this conversation exchange and extract factual information worth remembering.
 
-User message:
+Exchange:
 {user_message}
 
-Assistant response:
 {assistant_response}
 
-Extract memories as JSON. Only include genuinely important/reusable information.
-Skip: greetings, acknowledgments, transient details, obvious facts.
+Extract memories as JSON. Preserve SPECIFIC details - these are critical for accurate recall.
 
-Focus on:
-- User preferences (how they like things done)
-- Important facts about them or their projects
-- Decisions made
-- Technical insights or solutions discovered
-- Recurring patterns or context
+MUST preserve:
+- DATES and TIMES - CONVERT relative dates to absolute when possible!
+  - If message says "[May 8, 2023] yesterday" → store as "May 7, 2023"
+  - If message says "[May 25, 2023] last year" → store as "2022"
+  - If message says "[June 9, 2023] next month" → store as "July 2023"
+- NAMES of people, places, organizations  
+- SPECIFIC facts (identities, relationships, events, activities)
+- Numbers, quantities, durations
+
+DO extract:
+- Who someone is (identity, profession, relationships)
+- What someone did or experienced (events, activities)
+- When things happened (dates, timeframes)
+- Preferences, beliefs, values
+- Decisions and plans
+- Biographical details
+
+DON'T extract:
+- Generic greetings or small talk
+- Vague acknowledgments without substance
 
 Return JSON only, no markdown:
 {{
   "should_remember": true/false,
   "memories": [
     {{
-      "content": "concise statement of what to remember",
-      "type": "preference|fact|decision|insight",
+      "content": "specific factual statement preserving names, dates, and details",
+      "type": "fact|event|preference|identity|relationship",
       "importance": 0.0-1.0,
       "tags": ["relevant", "tags"],
       "confidence": 0.0-1.0
     }}
   ],
-  "reasoning": "why these are worth remembering (or why nothing is)"
+  "reasoning": "brief explanation"
 }}
 
-If nothing is worth remembering, return should_remember: false with empty memories array."""
+IMPORTANT: Be specific! "Alex is a software developer" not "Alex works in tech".
+Include dates: "Sarah joined the hiking club on March 8, 2025" not "Sarah joined a club".
+
+If nothing substantive, return should_remember: false with empty memories array."""
 
 
 class MemoryExtractor:
@@ -227,6 +244,9 @@ class MemoryExtractor:
                 contents=prompt
             )
             response_text = response.text
+            
+            # Track token usage for MemMan
+            tracker.record_memman_usage(response.usage_metadata, self.model_name)
             
             # Parse response
             try:
