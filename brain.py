@@ -231,6 +231,7 @@ Examples:
   python brain.py --add "Remember..."  Add a memory
   python brain.py --remove abc123     Remove memory by ID
   python brain.py --merge             Merge similar memories
+  python brain.py --wipe              Wipe all memories
         """
     )
     
@@ -239,6 +240,7 @@ Examples:
     parser.add_argument("--add", "-a", type=str, help="Add a memory")
     parser.add_argument("--remove", "-r", type=str, help="Remove a memory by ID")
     parser.add_argument("--merge", action="store_true", help="Merge similar memories")
+    parser.add_argument("--wipe", action="store_true", help="Wipe all memories (requires confirmation)")
     parser.add_argument("--importance", "-i", type=float, default=0.7,
                        help="Importance for added memory (0.0-1.0)")
     parser.add_argument("--verbose", "-v", action="store_true", 
@@ -293,6 +295,18 @@ Examples:
                     print(f"     ← merged {mid[:8]}")
         else:
             print("✅ No similar memories to merge")
+    
+    elif args.wipe:
+        count = len(proxy.memory.memory_system.memories)
+        if count == 0:
+            print("📭 No memories to wipe")
+        else:
+            confirm = input(f"⚠️  This will delete all {count} memories. Type 'yes' to confirm: ")
+            if confirm.lower() == 'yes':
+                proxy.memory.wipe_all_memories()
+                print(f"🗑️  Wiped {count} memories")
+            else:
+                print("❌ Wipe cancelled")
     
     else:
         # Interactive chat
