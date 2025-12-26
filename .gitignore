@@ -44,3 +44,6 @@ demo_*.db
 # Model downloads (sentence-transformers cache)
 .cache/
 huggingface/
+
+# Environment variables
+.env
