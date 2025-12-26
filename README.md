@@ -59,6 +59,32 @@ python brain.py --stats
 /quit          Exit the chat
 ```
 
+### Memory Visualizer
+
+Monitor memory state in real-time during conversations:
+
+```bash
+# In a separate terminal
+python memory_visualizer.py
+```
+
+**Sort Modes:**
+```bash
+python memory_visualizer.py                      # Combined ranking (default)
+python memory_visualizer.py --sort importance    # By importance score
+python memory_visualizer.py --sort recency       # By timestamp
+python memory_visualizer.py --sort access        # By access count
+python memory_visualizer.py --query "topic"      # By relevance to query
+```
+
+**Keyboard Controls:**
+- `q` - Quit
+- `1` - Sort by importance
+- `2` - Sort by recency
+- `3` - Sort by access count
+- `4` - Sort by combined score
+- `5` - Sort by relevance
+
 ## 🏗️ Architecture
 
 ```
@@ -105,6 +131,7 @@ python brain.py --stats
 | `VectorMemory` | `engram_pkg/core.py` | FAISS vector storage and semantic search |
 | `MemoryContextIntegrator` | `memory_context.py` | Context-aware retrieval and scoring |
 | `ContextWindowManager` | `context_window_manager.py` | Token budget management |
+| `MemoryVisualizer` | `memory_visualizer.py` | Real-time CLI memory visualization |
 
 ## 📊 Memory Schema
 
@@ -153,11 +180,12 @@ proxy = PassiveMemoryProxy(config=config)
 
 ```
 engram/
-├── brain.py              # CLI interface
+├── brain.py              # CLI chat interface
 ├── memory_proxy.py       # Main proxy (use this!)
 ├── memory_extractor.py   # Async memory extraction
 ├── memory_integration.py # Memory integration layer
 ├── memory_context.py     # Context-aware retrieval
+├── memory_visualizer.py  # Real-time memory TUI
 ├── context_window_manager.py # Token management
 ├── engram_pkg/           # Core package
 │   ├── __init__.py
