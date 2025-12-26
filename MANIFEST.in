@@ -1,0 +1,5 @@
+include LICENSE
+include README.md
+include requirements.txt
+recursive-include engram_pkg *.json
+recursive-include engram_pkg *.txt

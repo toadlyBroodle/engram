@@ -1,183 +1,176 @@
-# 🧠 Persistent Memory System
+# 🧠 Engram
 
-A self-improving AI memory system that automatically tracks conversations and builds persistent knowledge across Cursor IDE chat sessions.
+**Engram** - A passive memory layer for AI conversations. Automatically injects relevant memories into LLM context and extracts new insights from responses.
 
-## 🚀 Quick Setup for Cursor IDE
+> *An engram is the physical trace of a memory in the brain.*
 
-### Automatic Integration (Recommended)
+## ✨ Key Features
 
-1. **Add to Cursor IDE Settings:**
-   ```json
-   // Add to your Cursor IDE settings.json or .cursor/.cursorrules
-   {
-     "memoryIntegration.enabled": true,
-     "memoryIntegration.autoTrack": true,
-     "memoryIntegration.bootstrapCommand": "cd /home/rob/Dev/persistent_memory_project && python .cursor/activate_memory_integration.py"
-   }
-   ```
+- **Transparent Memory**: Memory is injected and extracted without LLM awareness
+- **Semantic Search**: FAISS-based vector storage with sentence transformer embeddings
+- **Async Extraction**: Background memory extraction doesn't block conversation flow
+- **Context-Aware**: Multi-factor relevance scoring (importance, recency, usage patterns)
+- **Local-First**: All data stored locally, works offline after initial setup
 
-2. **Conversation Start Hook:**
-   Add this to your Cursor IDE startup:
-   ```bash
-   python /home/rob/Dev/persistent_memory_project/.cursor/activate_memory_integration.py
-   ```
-
-3. **Message Tracking:**
-   For automatic message tracking, Cursor IDE should call:
-   ```bash
-   python /home/rob/Dev/persistent_memory_project/cursor_memory_hook.py {role} "{message_content}"
-   ```
-
-### Manual Integration
-
-If automatic integration isn't working:
-
-1. **Bootstrap Memory System:**
-   ```bash
-   cd /home/rob/Dev/persistent_memory_project
-   source .venv/bin/activate
-   python auto_bootstrap.py
-   ```
-
-2. **Track Messages Manually:**
-   ```bash
-   python cursor_memory_hook.py user "Your message here"
-   python cursor_memory_hook.py assistant "AI response here"
-   ```
-
-## 🎯 Features
-
-- ✅ **Automatic Conversation Tracking** - Every message is automatically remembered
-- ✅ **Self-Improving AI** - Memory system learns and optimizes itself
-- ✅ **Intelligent Memory Management** - Smart consolidation and deduplication
-- ✅ **High Performance** - 45+ queries per second with FAISS vector search
-- ✅ **Health Monitoring** - Automatic quality assessment and maintenance
-- ✅ **Cursor IDE Integration** - Seamless integration with chat conversations
-- ✅ **Improved CLI Interface** - Professional argparse-based command line with comprehensive help
-- ✅ **Enhanced Error Handling** - User-friendly error messages with actionable suggestions
-- ✅ **Comprehensive Testing** - Full test coverage for critical components
-- ✅ **Performance Optimizations** - Lazy loading and shared instances for better performance
-
-## 📊 System Status
+## 📦 Installation
 
 ```bash
-# Check memory system status
-python quick_memory.py stats
+cd engram
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-# Query memories with improved CLI
-python quick_memory.py query "How does the memory system work?" --max-memories 5
+Set your API key:
+```bash
+export GEMINI_API_KEY=your-api-key
+# Or place in .env file
+```
 
-# Add new memories
-python quick_memory.py add "New insight about AI" "ai,insights" 0.8
+## 🚀 Quick Start
 
-# Delete memories
-python quick_memory.py delete "memory_id"
+### Interactive Chat
 
-# Get health report
-python persistent_memory.py health
+```bash
+python brain.py
+```
 
-# Run all CLI tests
-python test/test_quick_memory_cli.py
+### CLI Commands
+
+```bash
+# Search memories
+python brain.py --search "python patterns"
+
+# Add a memory manually
+python brain.py --add "Always use type hints in function signatures"
+
+# Show statistics
+python brain.py --stats
+```
+
+### In-Chat Commands
+
+```
+/help          Show available commands
+/memories      Search your memories
+/recent        Show recent memories
+/stats         Show session statistics
+/add <text>    Manually add a memory
+/quit          Exit the chat
 ```
 
 ## 🏗️ Architecture
 
-- **Vector Database**: FAISS with sentence transformer embeddings
-- **Memory Storage**: Persistent vector storage with automatic consolidation
-- **Insight Detection**: Advanced pattern recognition for automatic memory capture
-- **Context Management**: Intelligent priority-based memory selection
-- **Performance**: CPU-optimized with AVX2 vector instructions
-
-## 🔧 Development
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run tests
-python test/run_tests.py
-
-# Development server
-python memory_integration.py
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     User Message                            │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│              PassiveMemoryProxy                             │
+│  ┌─────────────────────┐    ┌──────────────────────────┐   │
+│  │ 1. RETRIEVE (sync)  │    │ Vector Search (~10ms)    │   │
+│  │    Search memories  │───▶│ Get relevant memories    │   │
+│  └─────────────────────┘    └──────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────┐    ┌──────────────────────────┐   │
+│  │ 2. INJECT (sync)    │    │ Context Formatting       │   │
+│  │    Build prompt     │───▶│ Add memories to system   │   │
+│  └─────────────────────┘    └──────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────┐    ┌──────────────────────────┐   │
+│  │ 3. CALL LLM (sync)  │    │ Gemini API              │   │
+│  │    Get response     │───▶│ Memory-enhanced prompt   │   │
+│  └─────────────────────┘    └──────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────┐    ┌──────────────────────────┐   │
+│  │ 4. EXTRACT (async)  │    │ Background Worker        │   │
+│  │    Queue extraction │───▶│ Extract & store memories │   │
+│  └─────────────────────┘    └──────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Assistant Response                        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 🛠️ Troubleshooting
+### Core Components
 
-### Common Issues
+| Component | File | Purpose |
+|-----------|------|---------|
+| `PassiveMemoryProxy` | `memory_proxy.py` | Transparent LLM proxy with memory injection |
+| `MemoryExtractor` | `memory_extractor.py` | Async extraction of memories from responses |
+| `VectorMemory` | `engram_pkg/core.py` | FAISS vector storage and semantic search |
+| `MemoryContextIntegrator` | `memory_context.py` | Context-aware retrieval and scoring |
+| `ContextWindowManager` | `context_window_manager.py` | Token budget management |
 
-**Memory system not initializing:**
-```bash
-# Bootstrap the memory system
-python quick_memory.py tool
+## 📊 Memory Schema
 
-# Or manually run bootstrap
-python auto_bootstrap.py
+```python
+@dataclass
+class MemoryEntry:
+    id: str                    # Unique identifier
+    content: str               # Memory content
+    timestamp: datetime        # Creation time
+    importance: float          # 0.0 to 1.0
+    tags: List[str]           # Categorization tags
+    context: Dict[str, Any]   # Additional metadata
+    access_count: int         # Usage tracking
+    last_accessed: datetime   # Last retrieval time
+    embedding: List[float]    # Vector representation
 ```
 
-**Import errors or missing dependencies:**
-```bash
-# Install/update dependencies
-pip install -r requirements.txt
+## 🔧 Configuration
 
-# Activate virtual environment
-source .venv/bin/activate
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GEMINI_API_KEY` | Google Gemini API key | Required |
+
+### ProxyConfig Options
+
+```python
+from memory_proxy import PassiveMemoryProxy, ProxyConfig
+
+config = ProxyConfig(
+    memory_path="vector_memory",        # Storage location
+    max_memories_to_inject=5,           # Memories per query
+    min_memory_importance=0.2,          # Minimum importance threshold
+    model="gemini-2.0-flash",           # Main LLM model
+    extraction_model="gemini-2.0-flash-lite",  # Extraction model
+    memory_token_budget=1000,           # Max tokens for memory context
+    extraction_enabled=True,            # Enable async extraction
+    verbose=False                       # Debug logging
+)
+
+proxy = PassiveMemoryProxy(config=config)
 ```
 
-**CLI command errors:**
-```bash
-# Get help for any command
-python quick_memory.py --help
-python quick_memory.py query --help
+## 📁 Project Structure
 
-# Run tests to verify system health
-python test_quick_memory_cli.py
+```
+engram/
+├── brain.py              # CLI interface
+├── memory_proxy.py       # Main proxy (use this!)
+├── memory_extractor.py   # Async memory extraction
+├── memory_integration.py # Memory integration layer
+├── memory_context.py     # Context-aware retrieval
+├── context_window_manager.py # Token management
+├── engram_pkg/           # Core package
+│   ├── __init__.py
+│   ├── core.py           # VectorMemory class
+│   ├── context.py
+│   ├── integration.py
+│   └── cli.py
+├── vector_memory/        # Data storage
+│   ├── metadata.pkl
+│   └── faiss_index.bin
+└── requirements.txt
 ```
 
-**Performance issues:**
-```bash
-# Check system performance
-python quick_memory.py stats
+## 📝 License
 
-# The system automatically optimizes performance
-# If issues persist, restart the bootstrap
-python quick_memory.py tool
-```
-
-**Permission errors:**
-```bash
-# Check file permissions in project directory
-ls -la
-
-# Ensure virtual environment is properly activated
-source .venv/bin/activate
-```
-
-### Recent Improvements
-
-- **CLI Interface**: Upgraded to professional argparse with comprehensive error handling
-- **Performance**: Lazy loading and shared instances improve query performance by ~50%
-- **Testing**: Added comprehensive CLI tests and improved test coverage
-- **Error Handling**: User-friendly error messages with actionable suggestions
-- **Organization**: Moved configuration files to `.cursor/` directory
-
-### Getting Help
-
-If you encounter issues not covered here:
-1. Run the diagnostic tests: `python test/test_quick_memory_cli.py`
-2. Check system status: `python quick_memory.py stats`
-3. Restart with bootstrap: `python quick_memory.py tool`
-
-## 📝 Recent Changes
-
-### v1.1.0 - Self-Improvement Update
-- **CLI Enhancement**: Upgraded to professional argparse interface with comprehensive help
-- **Performance Boost**: Lazy loading and shared MemoryIntegration instances (50%+ performance improvement)
-- **Error Handling**: Specific, user-friendly error messages with actionable suggestions
-- **Testing**: Added comprehensive test suite with organized `test/` directory
-- **Organization**: Moved `.cursorrules` to `.cursor/` directory and cleaned up deprecated files
-- **Code Cleanup**: Removed old demo files and database remnants (~48KB freed)
-- **Documentation**: Enhanced README with troubleshooting guide and improved examples
-
----
-
-*This system ensures continuous AI improvement through persistent memory across all conversations.*
+MIT License

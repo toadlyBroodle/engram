@@ -1,21 +1,22 @@
-# Hardware-Optimized Dependencies for Vector Memory System
-# Target Hardware: Intel i7-6600U (4 cores, AVX2), 5.8GB RAM, WSL2, CPU-only
+# Engram - AI Memory System Dependencies
 
-# Core numerical computing (compatible with all packages)
+# Vector storage and semantic search
 numpy>=1.25.0,<2.0.0
-
-# CPU-optimized vector database (FAISS with AVX2 support)
 faiss-cpu>=1.7.0,<2.0.0
 
-# CPU-only semantic embeddings (no GPU dependencies)
-torch>=1.11.0,<3.0.0  # CPU-only version from pytorch.org/whl/cpu
+# Embeddings
+torch>=1.11.0,<3.0.0
 transformers>=4.21.0,<5.0.0
 sentence-transformers>=2.2.0,<3.0.0
 
-# Lightweight serialization utilities
+# Data handling
 dataclasses-json>=0.5.0,<1.0.0
 
-# Optional: Development dependencies
-# pytest>=7.0.0,<8.0.0
-# black>=22.0.0,<23.0.0
-# mypy>=1.0.0,<2.0.0
+# LLM Integration
+google-genai>=1.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# CLI visualization
+rich>=13.0.0

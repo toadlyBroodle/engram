@@ -20,7 +20,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
 import numpy as np
-from engram_pkg import VectorMemory
+from .core import VectorMemory
 
 
 @dataclass

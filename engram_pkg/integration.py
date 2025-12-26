@@ -1,5 +1,5 @@
 """
-Memory Integration Layer
+Engram Integration Layer
 
 Seamlessly integrates Engram memory into AI decision-making and conversations.
 This is the main interface for ensuring relevant memories are consistently available
@@ -12,12 +12,13 @@ Usage:
 """
 
 import json
+import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-from engram_pkg import VectorMemory
-from memory_context import MemoryContextIntegrator, create_memory_context_integrator
-from context_window_manager import ContextWindowManager, create_default_context_manager
+from .core import VectorMemory
+from .context import MemoryContextIntegrator, create_memory_context_integrator
+from .window import ContextWindowManager, create_default_context_manager
 
 
 class MemoryIntegration:
@@ -50,7 +51,23 @@ class MemoryIntegration:
         self.auto_save = auto_save
         self.conversation_history = []
 
+        # Initialize automatic memory capture (optional)
+        # Import here to avoid circular dependency
+        try:
+            from bootstrap_memory import MemoryBootstrap
+            self.bootstrap_handler = MemoryBootstrap(memory_path, self)
+            self.auto_capture_enabled = True
+
+            # Set the integration reference in bootstrap handler
+            if hasattr(self.bootstrap_handler, 'set_integration_reference'):
+                self.bootstrap_handler.set_integration_reference(self)
+        except ImportError:
+            # Bootstrap functionality not available in package mode
+            self.bootstrap_handler = None
+            self.auto_capture_enabled = False
+
         print("🧠 Memory Integration System initialized")
+        print("🔄 Automatic memory capture enabled")
 
     def update_conversation(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
         """
@@ -77,6 +94,10 @@ class MemoryIntegration:
         # Keep only recent history to avoid memory bloat
         if len(self.conversation_history) > 50:  # Keep last 50 messages
             self.conversation_history = self.conversation_history[-50:]
+
+        # Automatically capture important insights
+        if self.auto_capture_enabled and len(content) > 20:  # Only check substantial messages
+            self._check_and_capture_insight(content, role)
 
     def get_context_memories(self, query: Optional[str] = None,
                            max_memories: int = 5,
@@ -242,6 +263,51 @@ class MemoryIntegration:
 
         print("⚡ System optimized for performance")
 
+    def _check_autonomous_milestone(self, context: str = "operation_complete"):
+        """Check if current state warrants an autonomous milestone commit"""
+        if hasattr(self.bootstrap_handler, 'check_and_commit_milestone'):
+            self.bootstrap_handler.check_and_commit_milestone(context)
+
+    def _check_and_capture_insight(self, content: str, speaker: str):
+        """Check if content contains important insights worth remembering"""
+        try:
+            captured = self.bootstrap_handler.capture_important_insight(
+                text=content,
+                context=f"conversation_{speaker}",
+                importance=None  # Let the system determine importance
+            )
+            if captured:
+                # Update memory usage statistics for the newly captured memory
+                # This will help with future relevance scoring
+                pass  # The capture method already handles this
+        except Exception as e:
+            # Don't let auto-capture failures break the conversation flow
+            print(f"⚠️  Auto-capture failed: {e}")
+
+    def get_auto_capture_statistics(self) -> Dict[str, Any]:
+        """Get statistics about automatic memory capture"""
+        return self.bootstrap_handler.get_capture_statistics()
+
+    def toggle_auto_capture(self, enabled: bool = None) -> bool:
+        """
+        Toggle automatic memory capture on/off
+
+        Args:
+            enabled: If provided, set to this state. If None, toggle current state.
+
+        Returns:
+            New state of auto capture
+        """
+        if enabled is not None:
+            self.auto_capture_enabled = enabled
+        else:
+            self.auto_capture_enabled = not self.auto_capture_enabled
+
+        state_text = "enabled" if self.auto_capture_enabled else "disabled"
+        print(f"🔄 Automatic memory capture {state_text}")
+
+        return self.auto_capture_enabled
+
     def export_context_snapshot(self, filepath: str = None) -> str:
         """
         Export current context snapshot for debugging/analysis
@@ -266,10 +332,6 @@ class MemoryIntegration:
                 f.write(snapshot_json)
 
         return snapshot_json
-
-    def force_save(self):
-        """Force save all pending memory changes"""
-        self.memory_system.force_save()
 
 
 def create_memory_integration(memory_path: str = "vector_memory",

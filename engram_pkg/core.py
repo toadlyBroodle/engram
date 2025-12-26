@@ -1,9 +1,9 @@
 """
-Vector-Based Persistent Memory System for Self-Improving AI
+Engram - Vector-Based Memory System
 
-This module provides a persistent memory architecture that uses vector embeddings
-as the primary storage mechanism. Knowledge is stored as high-dimensional vectors
-that enable semantic similarity search and true understanding of relationships.
+This module provides the core vector memory architecture for Engram.
+Knowledge is stored as high-dimensional vectors that enable semantic
+similarity search and true understanding of relationships.
 
 VECTOR DATABASE ARCHITECTURE:
 - FAISS vector database for fast similarity search
@@ -45,7 +45,7 @@ class MemoryEntry:
 
 class VectorMemory:
     """
-    A vector-based persistent memory system using FAISS as primary storage.
+    Engram's vector-based memory system using FAISS as primary storage.
 
     This system stores all knowledge as high-dimensional vectors, enabling
     semantic similarity search and true understanding of knowledge relationships.

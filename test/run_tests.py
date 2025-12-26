@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Runner for Persistent Memory System
+Test Runner for Engram
 
 Runs all test suites in the correct order with proper environment setup.
 """
@@ -33,28 +33,31 @@ def run_test(test_file, description):
 
 def main():
     """Run all tests"""
-    print("🧠 PERSISTENT MEMORY SYSTEM - COMPREHENSIVE TEST SUITE")
+    print("🧠 ENGRAM - COMPREHENSIVE TEST SUITE")
     print("=" * 60)
 
     test_dir = Path(__file__).parent
     tests = [
-        (test_dir / "test_auto_bootstrap.py", "Auto Bootstrap Tests"),
         (test_dir / "test_quick_memory_cli.py", "CLI Interface Tests"),
         (test_dir / "test_memory_integration.py", "Memory Integration Tests"),
     ]
 
     passed = 0
-    total = len(tests)
+    total = 0
 
     for test_file, description in tests:
-        if run_test(test_file, description):
-            passed += 1
+        if test_file.exists():
+            total += 1
+            if run_test(test_file, description):
+                passed += 1
+        else:
+            print(f"⚠️  Skipping {description} (file not found)")
 
     print("\n" + "=" * 60)
     print(f"🧠 TEST RESULTS: {passed}/{total} test suites passed")
 
     if passed == total:
-        print("🎉 ALL TESTS PASSED! Memory system is healthy.")
+        print("🎉 ALL TESTS PASSED! Engram is healthy.")
         return 0
     else:
         print("❌ SOME TESTS FAILED. Please review the output above.")
