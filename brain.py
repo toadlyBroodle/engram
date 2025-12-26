@@ -14,6 +14,7 @@ Usage:
 
 import os
 import sys
+import time
 import argparse
 from pathlib import Path
 
@@ -94,6 +95,10 @@ def interactive_chat(proxy: PassiveMemoryProxy):
     
     while True:
         try:
+            # Print any pending MemMan messages before prompt
+            if hasattr(proxy, 'extractor') and proxy.extractor:
+                proxy.extractor.print_pending_messages()
+            
             # Get user input
             user_input = input("\033[1;36mYou:\033[0m ").strip()
             
@@ -223,8 +228,9 @@ Examples:
   python brain.py                     Start interactive chat
   python brain.py --search "python"   Search memories about python
   python brain.py --stats             Show memory statistics
-  python brain.py --add "Remember to always use dark mode"
+  python brain.py --add "Remember..."  Add a memory
   python brain.py --remove abc123     Remove memory by ID
+  python brain.py --merge             Merge similar memories
         """
     )
     
@@ -232,6 +238,7 @@ Examples:
     parser.add_argument("--stats", action="store_true", help="Show statistics")
     parser.add_argument("--add", "-a", type=str, help="Add a memory")
     parser.add_argument("--remove", "-r", type=str, help="Remove a memory by ID")
+    parser.add_argument("--merge", action="store_true", help="Merge similar memories")
     parser.add_argument("--importance", "-i", type=float, default=0.7,
                        help="Importance for added memory (0.0-1.0)")
     parser.add_argument("--verbose", "-v", action="store_true", 
@@ -273,6 +280,19 @@ Examples:
             print(f"✅ Memory removed: {args.remove}")
         else:
             print(f"❌ Memory not found: {args.remove}")
+    
+    elif args.merge:
+        merged = proxy.memory.memory_system.merge_similar_memories(similarity_threshold=0.80)
+        if merged:
+            print(f"\n📦 Merged {sum(len(m[1]) for m in merged)} memories:")
+            for kept_id, merged_ids in merged:
+                kept_mem = proxy.memory.memory_system.memories.get(kept_id)
+                content_preview = kept_mem.content[:50] if kept_mem else "?"
+                print(f"   • {kept_id[:8]}: {content_preview}...")
+                for mid in merged_ids:
+                    print(f"     ← merged {mid[:8]}")
+        else:
+            print("✅ No similar memories to merge")
     
     else:
         # Interactive chat

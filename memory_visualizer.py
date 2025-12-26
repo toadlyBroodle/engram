@@ -15,6 +15,8 @@ Usage:
 """
 
 import argparse
+import json
+import os
 import pickle
 import time
 import sys
@@ -90,13 +92,18 @@ class MemoryVisualizer:
     def __init__(self, memory_path: str = "vector_memory", refresh_interval: float = 1.0):
         self.memory_path = Path(memory_path)
         self.metadata_file = self.memory_path / "metadata.pkl"
+        self.activity_file = self.memory_path / "activity.jsonl"
         self.refresh_interval = refresh_interval
         self.console = Console()
         self.last_modified = None
+        self.last_activity_modified = None
         self.memories: Dict[str, Any] = {}
+        self.recent_activity: List[Dict] = []
         self.current_query: Optional[str] = None
         self.sort_mode: str = "combined"  # importance, recency, access, combined, relevance
         self.encoder = None  # Lazy-loaded for relevance scoring
+        self.memory_scroll_offset: int = 0  # Scroll position for memory table
+        self.max_visible_memories: int = 30  # Max memories visible at once
 
     def load_memories(self) -> bool:
         """Load memories from the pickle file. Returns True if data changed."""
@@ -115,6 +122,30 @@ class MemoryVisualizer:
                 return True
         except Exception as e:
             self.console.print(f"[red]Error loading memories: {e}[/red]")
+            return False
+
+    def load_activity(self) -> bool:
+        """Load recent activity from the log file."""
+        if not self.activity_file.exists():
+            return False
+
+        try:
+            current_mtime = self.activity_file.stat().st_mtime
+            if self.last_activity_modified == current_mtime:
+                return False
+
+            with open(self.activity_file, 'r') as f:
+                lines = f.readlines()
+                self.recent_activity = []
+                for line in lines[-10:]:  # Last 10 activities
+                    try:
+                        self.recent_activity.append(json.loads(line.strip()))
+                    except json.JSONDecodeError:
+                        pass
+                self.recent_activity.reverse()  # Most recent first
+                self.last_activity_modified = current_mtime
+                return True
+        except Exception:
             return False
 
     def _load_encoder(self):
@@ -232,10 +263,26 @@ class MemoryVisualizer:
     def create_memory_table(self) -> Table:
         """Create a rich table displaying memories"""
         display_memories = self._prepare_display_memories()
+        total_memories = len(display_memories)
+
+        # Clamp scroll offset
+        max_offset = max(0, total_memories - self.max_visible_memories)
+        self.memory_scroll_offset = max(0, min(self.memory_scroll_offset, max_offset))
+
+        # Slice memories based on scroll position
+        start_idx = self.memory_scroll_offset
+        end_idx = start_idx + self.max_visible_memories
+        visible_memories = display_memories[start_idx:end_idx]
+
+        # Build title with scroll indicator
+        if total_memories > self.max_visible_memories:
+            scroll_info = f" [{start_idx + 1}-{min(end_idx, total_memories)}/{total_memories}]"
+        else:
+            scroll_info = f" [{total_memories}]"
 
         # Create table
         table = Table(
-            title=f"🧠 Engram Memory Viewer",
+            title=f"🧠 Engram Memory Viewer{scroll_info}",
             box=box.ROUNDED,
             show_lines=True,
             title_style="bold magenta",
@@ -257,7 +304,7 @@ class MemoryVisualizer:
         table.add_column("Content", style="white", ratio=1)
 
         # Add rows
-        for idx, mem in enumerate(display_memories[:30], 1):  # Limit to 30 rows
+        for idx, mem in enumerate(visible_memories, start_idx + 1):
             importance_style = self._get_importance_style(mem.importance)
             tags_str = self._truncate(", ".join(mem.tags) if mem.tags else "-", 18)
             content_str = self._truncate(mem.content.replace("\n", " "), 60)
@@ -342,22 +389,54 @@ class MemoryVisualizer:
         
         return Panel(header_text, box=box.DOUBLE, style="blue")
 
+    def create_activity_panel(self) -> Panel:
+        """Create the activity log panel (compact version)"""
+        if not self.recent_activity:
+            return Panel("[dim]No recent activity[/dim]", title="🔄 MemMan Activity", box=box.ROUNDED)
+
+        activity_text = Text()
+        for i, entry in enumerate(self.recent_activity[:3]):  # Show last 3 (compact)
+            action = entry.get("action", "unknown")
+            
+            if action == "memory_stored":
+                content = entry.get("content", "")[:50]
+                activity_text.append(f"💾 ", style="green")
+                activity_text.append(f"{content}...", style="white")
+            elif action == "memory_updated":
+                content = entry.get("content", "")[:50]
+                activity_text.append(f"🔄 ", style="yellow")
+                activity_text.append(f"{content}...", style="white")
+            elif action == "extraction_skipped":
+                activity_text.append(f"⏭ skipped", style="dim")
+            elif action == "store_error":
+                activity_text.append(f"❌ error", style="red")
+            else:
+                activity_text.append(f"• {action}", style="dim")
+            
+            if i < 2:  # Add separator between entries
+                activity_text.append("  │  ", style="dim")
+
+        return Panel(activity_text, title="🔄 MemMan Activity", box=box.ROUNDED)
+
     def create_controls_panel(self) -> Panel:
         """Create the controls/help panel"""
         controls = Text()
-        controls.append("Controls: ", style="bold")
         controls.append("q", style="bold red")
-        controls.append("=quit  ", style="dim")
+        controls.append("=quit ", style="dim")
+        controls.append("↑/↓", style="bold cyan")
+        controls.append("=scroll ", style="dim")
+        controls.append("+/-", style="bold green")
+        controls.append(f"=rows({self.max_visible_memories}) ", style="dim")
         controls.append("1", style="bold yellow")
-        controls.append("=importance  ", style="dim")
+        controls.append("=comb ", style="dim")
         controls.append("2", style="bold yellow")
-        controls.append("=recency  ", style="dim")
+        controls.append("=imp ", style="dim")
         controls.append("3", style="bold yellow")
-        controls.append("=access  ", style="dim")
+        controls.append("=rec ", style="dim")
         controls.append("4", style="bold yellow")
-        controls.append("=combined  ", style="dim")
+        controls.append("=acc ", style="dim")
         controls.append("5", style="bold yellow")
-        controls.append("=relevance", style="dim")
+        controls.append("=rel", style="dim")
 
         return Panel(controls, box=box.ROUNDED, style="dim")
 
@@ -369,21 +448,38 @@ class MemoryVisualizer:
             Layout(name="header", size=3),
             Layout(name="stats", size=3),
             Layout(name="main", ratio=1),
+            Layout(name="activity", size=3),
             Layout(name="controls", size=3),
         )
 
         layout["header"].update(self.create_header())
         layout["stats"].update(self.create_stats_panel())
         layout["main"].update(self.create_memory_table())
+        layout["activity"].update(self.create_activity_panel())
         layout["controls"].update(self.create_controls_panel())
 
         return layout
 
     def _get_key_nonblocking(self) -> Optional[str]:
-        """Get a keypress without blocking, returns None if no key pressed"""
+        """Get a keypress without blocking, returns None if no key pressed.
+        Handles escape sequences for arrow keys."""
         try:
             if select.select([sys.stdin], [], [], 0)[0]:
-                return sys.stdin.read(1)
+                # Read all available input at once (up to 8 bytes for escape sequences)
+                data = os.read(sys.stdin.fileno(), 8)
+                if not data:
+                    return None
+                
+                # Check for escape sequence (arrow keys: ESC [ A/B)
+                if data == b'\x1b[A':
+                    return 'UP'
+                elif data == b'\x1b[B':
+                    return 'DOWN'
+                elif data.startswith(b'\x1b'):
+                    return None  # Ignore other escape sequences
+                
+                # Return single character
+                return data.decode('utf-8', errors='ignore')[0] if data else None
         except Exception:
             pass
         return None
@@ -394,6 +490,7 @@ class MemoryVisualizer:
 
         # Initial load
         self.load_memories()
+        self.load_activity()
 
         # Check if we have a proper TTY for keyboard input
         is_tty = sys.stdin.isatty()
@@ -421,15 +518,28 @@ class MemoryVisualizer:
                                 running = False
                                 continue
                             elif key == '1':
-                                self.sort_mode = "importance"
-                            elif key == '2':
-                                self.sort_mode = "recency"
-                            elif key == '3':
-                                self.sort_mode = "access"
-                            elif key == '4':
                                 self.sort_mode = "combined"
+                                self.memory_scroll_offset = 0  # Reset scroll on sort change
+                            elif key == '2':
+                                self.sort_mode = "importance"
+                                self.memory_scroll_offset = 0
+                            elif key == '3':
+                                self.sort_mode = "recency"
+                                self.memory_scroll_offset = 0
+                            elif key == '4':
+                                self.sort_mode = "access"
+                                self.memory_scroll_offset = 0
                             elif key == '5':
                                 self.sort_mode = "relevance"
+                                self.memory_scroll_offset = 0
+                            elif key == 'UP':
+                                self.memory_scroll_offset = max(0, self.memory_scroll_offset - 1)
+                            elif key == 'DOWN':
+                                self.memory_scroll_offset += 1  # Will be clamped in create_memory_table
+                            elif key in ('+', '='):  # = is unshifted + on most keyboards
+                                self.max_visible_memories = min(100, self.max_visible_memories + 5)
+                            elif key in ('-', '_'):
+                                self.max_visible_memories = max(5, self.max_visible_memories - 5)
                             # Force immediate display update on key press
                             live.update(self.create_display())
                     
@@ -437,6 +547,7 @@ class MemoryVisualizer:
                     current_time = time.time()
                     if current_time - last_update >= self.refresh_interval:
                         self.load_memories()
+                        self.load_activity()
                         live.update(self.create_display())
                         last_update = current_time
                     
@@ -475,6 +586,7 @@ def main(args: argparse.Namespace):
     
     visualizer.sort_mode = args.sort
     visualizer.current_query = args.query
+    visualizer.max_visible_memories = args.max_rows
 
     if args.once:
         visualizer.run_once()
@@ -502,6 +614,7 @@ Examples:
     parser.add_argument("--sort", choices=["importance", "recency", "access", "combined", "relevance"], default="combined", help="Sort mode (default: combined)")
     parser.add_argument("--query", type=str, default=None, help="Query string for relevance ranking")
     parser.add_argument("--refresh", type=float, default=1.0, help="Refresh interval in seconds (default: 1.0)")
+    parser.add_argument("--max-rows", type=int, default=30, help="Max memories to display (default: 30, use +/- to adjust live)")
     parser.add_argument("--once", action="store_true", help="Run once instead of live updates")
     
     main(parser.parse_args())

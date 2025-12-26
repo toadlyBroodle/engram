@@ -130,6 +130,26 @@ def delete_memory_quick(memory_id: str):
         return f"❌ Error deleting memory: {e}\n💡 Try: python quick_memory.py tool"
 
 
+def wipe_all_memories():
+    """
+    Delete all memories and start fresh
+
+    Returns:
+        Status message
+    """
+    try:
+        integration = get_memory_integration()
+        count = integration.wipe_all_memories()
+        if count > 0:
+            return f"🧹 Wiped {count} memories. Memory system is now empty and ready for fresh start."
+        else:
+            return "ℹ️  No memories to wipe. Memory system was already empty."
+    except PermissionError as e:
+        return f"❌ Permission denied wiping memories: {e}\n💡 Check file permissions"
+    except Exception as e:
+        return f"❌ Error wiping memories: {e}\n💡 Try: python quick_memory.py tool"
+
+
 def show_memory_stats():
     """Show current memory system statistics"""
     try:
@@ -210,6 +230,7 @@ Examples:
   python quick_memory.py query "How does the memory system work?"
   python quick_memory.py add "New insight" "tags,here" 0.8
   python quick_memory.py delete "memory_id"
+  python quick_memory.py wipe
   python quick_memory.py stats
   python quick_memory.py milestone "manual_check"
   python quick_memory.py remind
@@ -232,6 +253,9 @@ Examples:
     # Delete command
     delete_parser = subparsers.add_parser('delete', help='Delete a memory')
     delete_parser.add_argument('memory_id', help='ID of the memory to delete')
+
+    # Wipe command
+    subparsers.add_parser('wipe', help='Delete all memories and start fresh')
 
     # Stats command
     subparsers.add_parser('stats', help='Show memory system statistics')
@@ -279,6 +303,10 @@ def main():
 
         elif args.command == 'delete':
             result = delete_memory_quick(args.memory_id)
+            print(result)
+
+        elif args.command == 'wipe':
+            result = wipe_all_memories()
             print(result)
 
         elif args.command == 'stats':

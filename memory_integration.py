@@ -158,6 +158,32 @@ class MemoryIntegration:
 
         return deleted
 
+    def wipe_all_memories(self) -> int:
+        """
+        Delete all memories and start fresh
+
+        Returns:
+            Number of memories that were deleted
+        """
+        count = len(self.memory_system.memories)
+
+        # Clear all memory data structures
+        self.memory_system.memories.clear()
+        self.memory_system.id_to_idx.clear()
+        self.memory_system.idx_to_id.clear()
+
+        # Rebuild empty FAISS index
+        import faiss
+        self.memory_system.faiss_index = faiss.IndexFlatIP(self.memory_system.embedding_dim)
+
+        # Clear conversation history
+        self.conversation_history.clear()
+
+        # Save the empty state
+        self.memory_system._save_persistent_data()
+
+        return count
+
     def get_conversation_context(self, include_memories: bool = True) -> Dict[str, Any]:
         """
         Get complete conversation context including integrated memories

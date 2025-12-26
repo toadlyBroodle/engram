@@ -170,14 +170,14 @@ class VectorMemory:
         self.operation_count = 0
 
     def _check_memory_similarity(self, new_content: str, new_embedding: List[float],
-                                similarity_threshold: float = 0.85) -> Optional[str]:
+                                similarity_threshold: float = 0.70) -> Optional[str]:
         """
         Check if a similar memory already exists
 
         Args:
             new_content: New memory content
             new_embedding: New memory embedding
-            similarity_threshold: Threshold for considering memories similar
+            similarity_threshold: Threshold for considering memories similar (default 0.75)
 
         Returns:
             Memory ID if similar memory found, None otherwise
@@ -202,15 +202,22 @@ class VectorMemory:
                 if existing_memory:
                     # Additional content-based similarity check
                     content_similarity = self._calculate_content_similarity(new_content, existing_memory.content)
-                    if content_similarity > 0.7:  # Content is also similar
+                    if content_similarity > 0.6:  # Content is also similar
                         return existing_id
 
         return None
 
+    def _normalize_text(self, text: str) -> set:
+        """Normalize text for comparison - lowercase, strip punctuation"""
+        import re
+        # Remove punctuation, lowercase, split into words
+        cleaned = re.sub(r'[^\w\s]', '', text.lower())
+        return set(cleaned.split())
+
     def _calculate_content_similarity(self, text1: str, text2: str) -> float:
-        """Calculate similarity between two text strings"""
-        words1 = set(text1.lower().split())
-        words2 = set(text2.lower().split())
+        """Calculate similarity between two text strings (Jaccard similarity)"""
+        words1 = self._normalize_text(text1)
+        words2 = self._normalize_text(text2)
 
         if not words1 or not words2:
             return 0.0
@@ -253,6 +260,7 @@ class VectorMemory:
             if duplicate_id:
                 # Update existing memory instead of creating duplicate
                 existing_memory = self.memories[duplicate_id]
+                old_importance = existing_memory.importance
                 # Update importance if new memory is more important
                 if importance > existing_memory.importance:
                     existing_memory.importance = importance
@@ -261,7 +269,8 @@ class VectorMemory:
                 # Update context if provided
                 if context:
                     existing_memory.context.update(context)
-                # Update timestamp and access count
+                # Update timestamp to now (memory is "refreshed") and access count
+                existing_memory.timestamp = timestamp
                 existing_memory.last_accessed = timestamp
                 existing_memory.access_count += 1
 
@@ -269,6 +278,15 @@ class VectorMemory:
                 self.pending_changes = True
                 self.operation_count += 1
 
+                # Store update stats for MemoryExtractor to use
+                self._last_update_stats = {
+                    "memory_id": duplicate_id,
+                    "access_count": existing_memory.access_count,
+                    "old_importance": old_importance,
+                    "new_importance": existing_memory.importance
+                }
+
+                # Silently updated - MemoryExtractor handles user-facing messages
                 return duplicate_id
 
         # Create memory entry
@@ -857,6 +875,74 @@ class VectorMemory:
             "vector_dimensions": self.embedding_dim,
             "faiss_index_size": self.faiss_index.ntotal
         }
+
+    def merge_similar_memories(self, similarity_threshold: float = 0.80) -> List[tuple]:
+        """
+        Find and merge semantically similar memories.
+        
+        Args:
+            similarity_threshold: Minimum similarity to consider memories duplicates (0.0-1.0)
+            
+        Returns:
+            List of (kept_id, merged_ids) tuples showing what was merged
+        """
+        if len(self.memories) < 2:
+            return []
+        
+        merged_pairs = []
+        memories_to_delete = set()
+        
+        # Get all memory embeddings
+        memory_list = list(self.memories.values())
+        
+        for i, mem1 in enumerate(memory_list):
+            if mem1.id in memories_to_delete:
+                continue
+                
+            # Find similar memories
+            query_embedding = np.array([mem1.embedding], dtype=np.float32)
+            faiss.normalize_L2(query_embedding)
+            
+            k = min(10, self.faiss_index.ntotal)
+            scores, indices = self.faiss_index.search(query_embedding, k)
+            
+            merged_into_this = []
+            for score, idx in zip(scores[0], indices[0]):
+                if idx == -1 or idx == mem1.faiss_index:
+                    continue
+                    
+                other_id = self.idx_to_id.get(idx)
+                if not other_id or other_id in memories_to_delete or other_id == mem1.id:
+                    continue
+                    
+                if score >= similarity_threshold:
+                    other_mem = self.memories.get(other_id)
+                    if other_mem:
+                        # Merge: keep higher importance, combine tags
+                        if other_mem.importance > mem1.importance:
+                            mem1.importance = other_mem.importance
+                        mem1.tags = list(set(mem1.tags + other_mem.tags))
+                        mem1.access_count += other_mem.access_count
+                        
+                        memories_to_delete.add(other_id)
+                        merged_into_this.append(other_id)
+            
+            if merged_into_this:
+                merged_pairs.append((mem1.id, merged_into_this))
+        
+        # Delete merged memories
+        for memory_id in memories_to_delete:
+            if memory_id in self.memories:
+                del self.memories[memory_id]
+                if memory_id in self.id_to_idx:
+                    del self.id_to_idx[memory_id]
+        
+        # Rebuild index if we merged anything
+        if memories_to_delete:
+            self._rebuild_index_with_memories(list(self.memories.values()))
+            print(f"🔀 Merged {len(memories_to_delete)} similar memories into {len(merged_pairs)} unique memories")
+        
+        return merged_pairs
 
     def consolidate_memories(self, max_memories: int = 1000):
         """

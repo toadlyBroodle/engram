@@ -9,9 +9,11 @@ This is the "memory agent" that intelligently decides what to remember.
 
 import json
 import os
+import sys
 import threading
 import queue
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
@@ -97,6 +99,9 @@ class MemoryExtractor:
         self.worker_thread = None
         self.running = False
         
+        # Message queue for UI output (avoids printing after prompt)
+        self.message_queue = queue.Queue()
+        
         # Statistics
         self.stats = {
             "exchanges_processed": 0,
@@ -104,6 +109,9 @@ class MemoryExtractor:
             "extraction_errors": 0,
             "last_extraction": None
         }
+        
+        # Activity log for visualizer
+        self.activity_log_path = Path("vector_memory") / "activity.jsonl"
         
         # Initialize client if available
         if _gemini_available:
@@ -164,7 +172,7 @@ class MemoryExtractor:
                         
                 except Exception as e:
                     self.stats["extraction_errors"] += 1
-                    print(f"⚠️  Extraction error: {e}")
+                    self._queue_message(f"MemMan: ⚠️  Extraction error: {e}")
                 
                 self.extraction_queue.task_done()
                 
@@ -198,10 +206,6 @@ class MemoryExtractor:
         """
         self.stats["exchanges_processed"] += 1
         self.stats["last_extraction"] = datetime.now()
-        
-        # Skip very short exchanges
-        if len(user_message) < 20 and len(assistant_response) < 50:
-            return []
         
         # Use LLM extraction if available
         if self.client:
@@ -257,7 +261,7 @@ class MemoryExtractor:
             return memories
             
         except Exception as e:
-            print(f"⚠️  LLM extraction failed: {e}")
+            self._queue_message(f"MemMan: ⚠️  LLM extraction failed: {e}")
             return self._extract_with_heuristics(user_message, assistant_response)
     
     def _extract_with_heuristics(self, user_message: str, 
@@ -314,6 +318,29 @@ class MemoryExtractor:
         self.stats["memories_extracted"] += len(memories)
         return memories
     
+    def _log_activity(self, action: str, details: Dict[str, Any]):
+        """Log activity for visualizer to display"""
+        try:
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "action": action,
+                **details
+            }
+            with open(self.activity_log_path, 'a') as f:
+                f.write(json.dumps(entry) + '\n')
+            
+            # Keep log file reasonable size (last 100 entries)
+            try:
+                with open(self.activity_log_path, 'r') as f:
+                    lines = f.readlines()
+                if len(lines) > 100:
+                    with open(self.activity_log_path, 'w') as f:
+                        f.writelines(lines[-100:])
+            except Exception:
+                pass
+        except Exception:
+            pass  # Don't fail on logging errors
+
     def _store_memory(self, memory: ExtractedMemory):
         """Store an extracted memory in the memory system"""
         if not self.memory_system:
@@ -341,9 +368,55 @@ class MemoryExtractor:
             )
             # Force save so visualizer can see new memories immediately
             self.memory_system.force_save()
-            print(f"💾 Extracted memory stored: {memory.content[:50]}...")
+            
+            # Check if this was an update (access_count > 1) or new creation
+            stored_memory = self.memory_system.memories.get(memory_id)
+            was_update = stored_memory and stored_memory.access_count > 1
+            
+            # Log activity for visualizer
+            self._log_activity("memory_updated" if was_update else "memory_stored", {
+                "memory_id": memory_id,
+                "content": memory.content[:80],
+                "importance": adjusted_importance,
+                "type": memory.memory_type,
+                "tags": tags,
+                "access_count": stored_memory.access_count if stored_memory else 1
+            })
+            
+            if was_update:
+                # Get update stats from memory system
+                stats = getattr(self.memory_system, '_last_update_stats', {})
+                acc = stats.get('access_count', stored_memory.access_count if stored_memory else 1)
+                old_imp = stats.get('old_importance', adjusted_importance)
+                new_imp = stats.get('new_importance', adjusted_importance)
+                self._queue_message(f"MemMan: 🔄 Reinforced (acc:{acc}, imp:{old_imp:.2f}→{new_imp:.2f}): {memory.content[:40]}...")
+            else:
+                self._queue_message(f"MemMan: 💾 New (imp:{adjusted_importance:.2f}): {memory.content[:50]}...")
         except Exception as e:
-            print(f"⚠️  Failed to store memory: {e}")
+            self._log_activity("store_error", {"error": str(e), "content": memory.content[:50]})
+            self._queue_message(f"MemMan: ⚠️  Failed to store memory: {e}")
+    
+    def _queue_message(self, message: str):
+        """Print message above current line using terminal escape codes"""
+        # \r = move to start of line, \033[K = clear line
+        # Print message, newline, then reprint the prompt
+        sys.stdout.write(f"\r\033[K{message}\n\033[1;36mYou:\033[0m ")
+        sys.stdout.flush()
+    
+    def get_pending_messages(self) -> List[str]:
+        """Get and clear all pending messages (legacy - messages now print immediately)"""
+        messages = []
+        while not self.message_queue.empty():
+            try:
+                messages.append(self.message_queue.get_nowait())
+            except queue.Empty:
+                break
+        return messages
+    
+    def print_pending_messages(self):
+        """Print all pending messages (legacy - messages now print immediately)"""
+        for msg in self.get_pending_messages():
+            print(msg)
     
     def get_stats(self) -> Dict[str, Any]:
         """Get extraction statistics"""
