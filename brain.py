@@ -245,8 +245,10 @@ Examples:
                        help="Importance for added memory (0.0-1.0)")
     parser.add_argument("--verbose", "-v", action="store_true", 
                        help="Verbose output")
-    parser.add_argument("--model", type=str, default="gemini-2.0-flash",
-                       help="Model to use for chat")
+    parser.add_argument("--brain-model", type=str, default="gemini-2.0-flash",
+                       help="Model to use for chat (default: gemini-2.0-flash)")
+    parser.add_argument("--memman-model", type=str, default="gemini-2.0-flash-lite",
+                       help="Model for MemMan agent (default: gemini-2.0-flash-lite)")
     parser.add_argument("--no-extraction", action="store_true",
                        help="Disable automatic memory extraction")
     
@@ -255,7 +257,8 @@ Examples:
     # Create config
     config = ProxyConfig(
         verbose=args.verbose,
-        model=args.model,
+        model=args.brain_model,
+        extraction_model=args.memman_model,
         extraction_enabled=not args.no_extraction
     )
     
