@@ -7,8 +7,10 @@
 ## ✨ Key Features
 
 - **Transparent Memory**: Memory is injected and extracted without LLM awareness
+- **Intelligent MemMan Agent**: Background LLM agent that analyzes conversations and decides what to remember
 - **Semantic Search**: FAISS-based vector storage with sentence transformer embeddings
 - **Async Extraction**: Background memory extraction doesn't block conversation flow
+- **Memory Reinforcement**: Similar memories are reinforced, increasing importance over time
 - **Context-Aware**: Multi-factor relevance scoring (importance, recency, usage patterns)
 - **Local-First**: All data stored locally, works offline after initial setup
 
@@ -114,8 +116,8 @@ python memory_visualizer.py --query "topic"      # By relevance to query
 │  └─────────────────────┘    └──────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────┐    ┌──────────────────────────┐   │
-│  │ 4. EXTRACT (async)  │    │ Background Worker        │   │
-│  │    Queue extraction │───▶│ Extract & store memories │   │
+│  │ 4. EXTRACT (async)  │    │ MemMan Agent (LLM)       │   │
+│  │    Queue extraction │───▶│ Analyze & store memories │   │
 │  └─────────────────────┘    └──────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                            │
@@ -130,11 +132,29 @@ python memory_visualizer.py --query "topic"      # By relevance to query
 | Component | File | Purpose |
 |-----------|------|---------|
 | `PassiveMemoryProxy` | `memory_proxy.py` | Transparent LLM proxy with memory injection |
-| `MemoryExtractor` | `memory_extractor.py` | Async extraction of memories from responses |
+| `MemoryExtractor` | `memory_extractor.py` | **MemMan Agent** - async LLM-powered memory management |
 | `VectorMemory` | `engram_pkg/core.py` | FAISS vector storage and semantic search |
 | `MemoryContextIntegrator` | `memory_context.py` | Context-aware retrieval and scoring |
 | `ContextWindowManager` | `context_window_manager.py` | Token budget management |
 | `MemoryVisualizer` | `memory_visualizer.py` | Real-time CLI memory visualization |
+
+### 🤖 MemMan Agent
+
+The **MemMan (Memory Manager) Agent** is a background LLM-powered worker that intelligently manages memory extraction:
+
+- **Async Processing**: Runs in a separate thread, never blocking the main conversation
+- **LLM Intelligence**: Uses a fast/cheap model (Gemini Flash Lite) to analyze each exchange
+- **Smart Filtering**: Decides what's actually worth remembering vs. transient chatter
+- **Memory Types**: Extracts preferences, facts, decisions, and insights
+- **Confidence Scoring**: Assigns importance and confidence to each memory
+- **Memory Reinforcement**: When similar memories are detected, reinforces them (increases importance and access count)
+- **Graceful Fallback**: Falls back to heuristic extraction if LLM is unavailable
+
+MemMan output appears in real-time during chat:
+```
+MemMan: 💾 New (imp:0.70): User prefers dark mode in applications...
+MemMan: 🔄 Reinforced (acc:3, imp:0.65→0.72): Working on ProjectX...
+```
 
 ## 📊 Memory Schema
 
@@ -185,7 +205,7 @@ proxy = PassiveMemoryProxy(config=config)
 engram/
 ├── brain.py              # CLI chat interface
 ├── memory_proxy.py       # Main proxy (use this!)
-├── memory_extractor.py   # Async memory extraction
+├── memory_extractor.py   # MemMan Agent - async LLM memory management
 ├── memory_integration.py # Memory integration layer
 ├── memory_context.py     # Context-aware retrieval
 ├── memory_visualizer.py  # Real-time memory TUI
