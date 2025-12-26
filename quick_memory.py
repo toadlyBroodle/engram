@@ -9,6 +9,7 @@ Use this to get instant memory suggestions without starting the full assistant.
 import sys
 import argparse
 from memory_integration import MemoryIntegration
+from token_tracker import tracker
 
 # Global instance for performance - lazy loaded
 _memory_integration = None
@@ -166,6 +167,11 @@ def show_memory_stats():
         return f"❌ Error getting stats: {e}"
 
 
+def show_token_stats():
+    """Show current token usage statistics for Brain and MemMan"""
+    return tracker.format_stats()
+
+
 def check_autonomous_milestone(context: str = "manual_check") -> str:
     """Check if current system state warrants an autonomous milestone commit"""
     try:
@@ -260,6 +266,9 @@ Examples:
     # Stats command
     subparsers.add_parser('stats', help='Show memory system statistics')
 
+    # Tokens command
+    subparsers.add_parser('tokens', help='Show token usage and cost stats for Brain/MemMan')
+
     # Milestone command
     milestone_parser = subparsers.add_parser('milestone', help='Check for autonomous milestone commit')
     milestone_parser.add_argument('--context', default='manual_check', help='Context for milestone check')
@@ -311,6 +320,10 @@ def main():
 
         elif args.command == 'stats':
             result = show_memory_stats()
+            print(result)
+
+        elif args.command == 'tokens':
+            result = show_token_stats()
             print(result)
 
         elif args.command == 'milestone':

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from engram_pkg import VectorMemory
 from memory_integration import MemoryIntegration
 from memory_extractor import MemoryExtractor
+from token_tracker import tracker
 
 # Check for Gemini SDK
 _gemini_available = False
@@ -234,6 +235,9 @@ When you receive context from previous conversations, treat this as YOUR memory 
             )
             assistant_message = response.text
             
+            # Track token usage for Brain
+            tracker.record_brain_usage(response.usage_metadata, self.config.model)
+            
         except Exception as e:
             error_msg = f"Error calling LLM: {e}"
             print(f"❌ {error_msg}")
@@ -289,11 +293,23 @@ When you receive context from previous conversations, treat this as YOUR memory 
         self.conversation_history = []
         print("🗑️  Conversation cleared (memories preserved)")
     
-    def shutdown(self):
+    def shutdown(self, show_stats: bool = False):
         """Graceful shutdown"""
         self.extractor.stop_worker()
         self.memory.memory_system.force_save()
         print("👋 Memory proxy shut down")
+        
+        if show_stats:
+            print()
+            print(tracker.format_stats())
+    
+    def get_token_stats(self) -> dict:
+        """Get current token usage stats"""
+        return tracker.get_stats()
+    
+    def print_token_stats(self):
+        """Print token usage stats"""
+        print(tracker.format_stats())
 
 
 def create_proxy(verbose: bool = False, **kwargs) -> PassiveMemoryProxy:
