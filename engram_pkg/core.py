@@ -362,13 +362,21 @@ class VectorMemory:
         Delete a memory from the system
 
         Args:
-            memory_id: ID of the memory to delete
+            memory_id: ID of the memory to delete (can be partial prefix)
 
         Returns:
             True if memory was deleted, False if not found
         """
+        # Support partial ID matching (e.g., first 8 chars from visualizer)
         if memory_id not in self.memories:
-            return False
+            matches = [mid for mid in self.memories if mid.startswith(memory_id)]
+            if len(matches) == 1:
+                memory_id = matches[0]
+            elif len(matches) > 1:
+                print(f"⚠️  Multiple memories match '{memory_id}': {[m[:8] for m in matches]}")
+                return False
+            else:
+                return False
 
         # Get the FAISS index position
         faiss_idx = self.memories[memory_id].faiss_index

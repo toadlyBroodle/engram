@@ -106,7 +106,9 @@ class PassiveMemoryProxy:
         
         # Conversation state
         self.conversation_history = []
-        self.system_prompt = "You are a helpful assistant."
+        self.system_prompt = """You are a helpful AI assistant with persistent memory. You have the ability to remember important information from previous conversations and use it to provide more personalized and context-aware responses.
+
+When you receive context from previous conversations, treat this as YOUR memory - information you genuinely remember about the user and past interactions. Use this knowledge naturally in your responses."""
         
         # Statistics
         self.stats = {
@@ -162,9 +164,9 @@ class PassiveMemoryProxy:
         
         self.stats["tokens_used_for_memory"] += total_chars // 4
         
-        context = "## Context from previous conversations:\n"
+        context = "## Your memories:\n"
         context += "\n".join(memory_lines)
-        context += "\n\nUse this context naturally when relevant. Don't explicitly mention 'from our previous conversations'."
+        context += "\n\nThese are things you remember. Use them naturally when relevant to help the user."
         
         return context
     

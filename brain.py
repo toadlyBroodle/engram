@@ -224,12 +224,14 @@ Examples:
   python brain.py --search "python"   Search memories about python
   python brain.py --stats             Show memory statistics
   python brain.py --add "Remember to always use dark mode"
+  python brain.py --remove abc123     Remove memory by ID
         """
     )
     
     parser.add_argument("--search", "-s", type=str, help="Search memories")
     parser.add_argument("--stats", action="store_true", help="Show statistics")
     parser.add_argument("--add", "-a", type=str, help="Add a memory")
+    parser.add_argument("--remove", "-r", type=str, help="Remove a memory by ID")
     parser.add_argument("--importance", "-i", type=float, default=0.7,
                        help="Importance for added memory (0.0-1.0)")
     parser.add_argument("--verbose", "-v", action="store_true", 
@@ -265,6 +267,12 @@ Examples:
     elif args.add:
         memory_id = proxy.add_memory(args.add, importance=args.importance)
         print(f"✅ Memory added: {memory_id}")
+    
+    elif args.remove:
+        if proxy.memory.delete_memory(args.remove):
+            print(f"✅ Memory removed: {args.remove}")
+        else:
+            print(f"❌ Memory not found: {args.remove}")
     
     else:
         # Interactive chat
