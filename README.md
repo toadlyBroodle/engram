@@ -44,6 +44,9 @@ python brain.py --search "python patterns"
 # Add a memory manually
 python brain.py --add "Always use type hints in function signatures"
 
+# Remove a memory by ID
+python brain.py --remove abc123
+
 # Show statistics
 python brain.py --stats
 ```

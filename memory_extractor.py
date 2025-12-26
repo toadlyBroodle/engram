@@ -339,6 +339,8 @@ class MemoryExtractor:
                     "extracted_at": datetime.now().isoformat()
                 }
             )
+            # Force save so visualizer can see new memories immediately
+            self.memory_system.force_save()
             print(f"💾 Extracted memory stored: {memory.content[:50]}...")
         except Exception as e:
             print(f"⚠️  Failed to store memory: {e}")
