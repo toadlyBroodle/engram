@@ -2,6 +2,8 @@
 
 **Engram** - A passive memory layer for AI conversations. Automatically injects relevant memories into LLM context and extracts new insights from responses.
 
+[![Engram Demo](https://img.youtube.com/vi/7J_UNgNKp7g/0.jpg)](https://youtu.be/7J_UNgNKp7g)
+
 > *An engram is the physical trace of a memory in the brain.*
 
 ## ✨ Key Features
