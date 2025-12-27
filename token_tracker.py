@@ -235,4 +235,3 @@ if __name__ == "__main__":
     print()
     print("JSON stats:")
     print(json.dumps(tracker.get_stats(), indent=2))
-
