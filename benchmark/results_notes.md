@@ -1,4 +1,16 @@
-# Baseline gemini-2.0-flash-lite
+## Baseline: evaluate_gemini.sh: gemini-2.0.flash
+
+Total number of questions and corresponding accuracy in each category: 
+Single-hop:  4 841 560.3169999999998 0.666
+Multi-hop:   1 282 106.71700000000001 0.378
+Temporal:    2 321 135.20900000000006 0.421
+Open-domain: 3 96 20.369 0.212
+Adversarial:  5 446 350 0.785
+Overall accuracy:  0.59
+
+--------------------------------
+
+# Baseline: gemini-2.0-flash-lite
 
 199 QA samples evaluated; 199 accuracy values
 Total number of questions and corresponding accuracy in each category: 
@@ -70,22 +82,71 @@ Stats: benchmark/results_test_engram_stats.json
    Rate: 319.7 tokens/sec
 ══════════════════════════════════════════════════
 
-## evaluate_gemini.sh: gemini-2.0.flash
+--------------------------------
 
-199 QA samples evaluated; 199 accuracy values
-105 QA samples evaluated; 105 accuracy values
-193 QA samples evaluated; 193 accuracy values
-260 QA samples evaluated; 260 accuracy values
-242 QA samples evaluated; 242 accuracy values
-158 QA samples evaluated; 158 accuracy values
-190 QA samples evaluated; 190 accuracy values
-239 QA samples evaluated; 239 accuracy values
-196 QA samples evaluated; 196 accuracy values
-204 QA samples evaluated; 204 accuracy values
+# Engram RLM (gemini-2.0-flash-lite) - Quick Test
+
+3 QA samples evaluated; 3 accuracy values
 Total number of questions and corresponding accuracy in each category: 
-Single-hop:  4 841 560.3169999999998 0.666
-Multi-hop:   1 282 106.71700000000001 0.378
-Temporal:    2 321 135.20900000000006 0.421
-Open-domain: 3 96 20.369 0.212
-Adversarial:  5 446 350 0.785
-Overall accuracy:  0.59
+Temporal:    2 2 0.5 0.25
+Open-domain: 3 1 0 0.0
+Overall accuracy:  0.167
+
+Note: Quick sanity test (1 conv, 3 QA). Model failed to use tools reliably.
+Search finds answers but model claims "I don't have information".
+
+══════════════════════════════════════════════════
+📊 TOKEN USAGE STATS
+══════════════════════════════════════════════════
+🧠 Brain (gemini-2.0-flash-lite):
+   Calls: 4
+   Tokens: 2,804 in / 63 out = 2,867
+   Cost: $0.0002
+💾 MemMan (gemini-2.0-flash-lite):
+   Calls: 113
+   Tokens: 59,357 in / 36,111 out = 95,468
+   Cost: $0.0153
+──────────────────────────────────────────────────
+📈 TOTAL:
+   Calls: 117
+   Tokens: 98,335
+   Cost: $0.0155
+══════════════════════════════════════════════════
+--------------------------------
+
+# Engram RLM v1 (gemini-2.0-flash + flash-lite) - 1 conv, 5 QA
+
+5 QA samples evaluated; 733 memories ingested
+Total number of questions and corresponding accuracy in each category: 
+Multi-hop:   1 2 0.731 0.365
+Temporal:    2 2 0.5 0.25
+Open-domain: 3 1 0.105 0.105
+Overall accuracy:  0.267
+
+Analysis:
+- Correct answers but TOO VERBOSE (full sentences vs short phrases)
+- F1 score penalizes extra words heavily
+- Search found wrong memory for "sunrise" (got "sunset" instead)
+
+══════════════════════════════════════════════════
+📊 TOKEN USAGE STATS
+══════════════════════════════════════════════════
+🧠 Brain (gemini-2.0-flash):
+   Calls: 11
+   Tokens: 9,967 in / 181 out = 10,148
+   Cost: $0.0011
+💾 MemMan (gemini-2.0-flash-lite):
+   Calls: 214
+   Tokens: 112,811 in / 72,265 out = 185,076
+   Cost: $0.0301
+──────────────────────────────────────────────────
+📈 TOTAL:
+   Calls: 225
+   Tokens: 195,224
+   Cost: $0.0312
+══════════════════════════════════════════════════
+
+Fixes applied for v2:
+1. Better answer prompt - asks for 1-5 word SHORT answers
+2. Improved search strategy in system prompt
+3. Increased max_tool_calls from 5 to 8

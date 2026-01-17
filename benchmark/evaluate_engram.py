@@ -41,7 +41,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate Engram on LoCoMo")
     parser.add_argument('--data-file', type=str, default='benchmark/locomo-official/data/locomo10.json', help="Path to locomo10.json")
     parser.add_argument('--out-file', type=str, required=True, help="Output file for results")
-    parser.add_argument('--model', type=str, default='gemini-2.0-flash-lite', help="Model to use")
+    parser.add_argument('--model', type=str, default='gemini-2.0-flash-lite', help="Model for agent/QA")
+    parser.add_argument('--memman-model', type=str, default='gemini-2.0-flash-lite', help="Model for MemMan extraction")
     parser.add_argument('--max-conversations', type=int, default=None, help="Limit conversations (for testing)")
     parser.add_argument('--max-qa', type=int, default=None, help="Limit QA per conversation")
     parser.add_argument('--overwrite', action='store_true', help="Overwrite existing predictions")
@@ -63,10 +64,12 @@ def main():
     if args.baseline:
         print("📊 BASELINE LoCoMo Benchmark (Vanilla Gemini)")
     else:
-        print("🧠 ENGRAM LoCoMo Benchmark")
+        print("🧠 ENGRAM LoCoMo Benchmark (RLM)")
     print("=" * 60)
     print(f"Mode: {mode}")
-    print(f"Model: {args.model}")
+    print(f"Agent Model: {args.model}")
+    if not args.baseline:
+        print(f"MemMan Model: {args.memman_model}")
     print(f"Data: {args.data_file}")
     print(f"Output: {args.out_file}")
     
@@ -145,10 +148,12 @@ def main():
     if args.baseline:
         print("📊 BASELINE LoCoMo Benchmark (Vanilla Gemini)")
     else:
-        print("🧠 ENGRAM LoCoMo Benchmark")
+        print("🧠 ENGRAM LoCoMo Benchmark (RLM)")
     print("=" * 60)
     print(f"Mode: {mode}")
-    print(f"Model: {args.model}")
+    print(f"Agent Model: {args.model}")
+    if not args.baseline:
+        print(f"MemMan Model: {args.memman_model}")
     print(f"Data: {args.data_file}")
     print(f"Output: {args.out_file}")
     
@@ -209,7 +214,8 @@ def main():
             proxy = init_engram_memory(
                 data['conversation'], 
                 memory_path, 
-                model=args.model
+                model=args.model,
+                extraction_model=args.memman_model
             )
             try:
                 # Generate answers
