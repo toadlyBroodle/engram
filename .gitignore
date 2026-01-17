@@ -47,3 +47,7 @@ huggingface/
 
 # Environment variables
 .env
+
+# Benchmark files
+benchmark/locomo-official/
+benchmark/results/*.json*
